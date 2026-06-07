@@ -1,0 +1,42 @@
+# -----------------------------------------------------
+# Lotoks — Git Ignore
+# -----------------------------------------------------
+
+# Environment / Secrets
+.env
+.env.local
+.env.production
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+
+# IDE / Editor
+.vscode/
+.idea/
+*.sublime-*
+
+# Dependencies (if composer/npm is used)
+vendor/
+node_modules/
+
+# Logs
+logs/*.log
+logs/email.log
+!logs/.htaccess
+
+# Uploads (user-generated content)
+uploads/*
+
+# Temp / Cache
+.cache/
+tmp/
+*.tmp
+
+# PHP
+*.log
+error_log

@@ -4,6 +4,7 @@
  * Converted from pages/Home.tsx
  */
 require_once __DIR__ . '/includes/auth.php';
+redirect_if_logged_in();
 
 $page_title       = 'Lotoks | Your Gateway to Global Opportunities';
 $page_description = 'Lotoks connects ambitious professionals with visa sponsorships, education scholarships, job placements, and residence programs worldwide.';
@@ -23,8 +24,8 @@ require_once __DIR__ . '/includes/navbar.php';
   <div class="hero-gradient"></div>
 
   <!-- Decorative blobs -->
-  <div class="hero-blob-gold orb-1" style="top:25%;left:25%;width:24rem;height:24rem;"></div>
-  <div class="hero-blob-gold orb-2" style="bottom:25%;right:25%;width:20rem;height:20rem;background:rgba(29,122,122,0.1);"></div>
+  <div class="hero-blob-gold orb-1" style="top:25%;left:25%;width:min(24rem,60vw);height:min(24rem,60vw);"></div>
+  <div class="hero-blob-gold orb-2" style="bottom:25%;right:25%;width:min(20rem,50vw);height:min(20rem,50vw);background:rgba(29,122,122,0.1);"></div>
 
   <!-- Floating orbs -->
   <div class="orb-float orb-1" style="top:5rem;left:2.5rem;width:1rem;height:1rem;"></div>
@@ -109,9 +110,9 @@ require_once __DIR__ . '/includes/navbar.php';
 
     <!-- Connecting line (desktop only) -->
     <div style="position:relative;">
-      <div style="display:none;" class="how-connector"></div>
+      <div style="display:none;" class="how-connector how-steps-grid"></div>
 
-      <div style="display:grid;grid-template-columns:1fr;gap:2rem;" data-stagger data-stagger-step="120">
+      <div style="display:grid;gap:2rem;" data-stagger data-stagger-step="120" class="how-steps-grid">
         <?php
         $steps = [
           ['step' => 1, 'title' => 'Create Account',    'desc' => 'Sign up in seconds and complete your profile with basic information.'],
@@ -138,12 +139,27 @@ require_once __DIR__ . '/includes/navbar.php';
 </section>
 
 <style>
+.hero-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: stretch;
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .hero-cta {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+  }
+}
+  .how-steps-grid { grid-template-columns: 1fr; }
 @media (min-width:768px) {
   section .how-connector { display:block !important;position:absolute;top:1.5rem;left:0;right:0;height:2px;background:linear-gradient(to right,rgba(201,164,75,0),rgba(201,164,75,0.5),rgba(201,164,75,0)); }
-  section [data-stagger] { grid-template-columns: repeat(2,1fr) !important; }
+  .how-steps-grid { grid-template-columns: repeat(2,1fr); }
 }
 @media (min-width:1024px) {
-  section [data-stagger] { grid-template-columns: repeat(4,1fr) !important; }
+  .how-steps-grid { grid-template-columns: repeat(4,1fr); }
 }
 </style>
 
@@ -157,7 +173,7 @@ require_once __DIR__ . '/includes/navbar.php';
       <p style="color:rgba(255,255,255,0.6);">Comprehensive solutions for all your global mobility needs</p>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr;gap:1.5rem;" class="services-grid">
+    <div style="display:grid;gap:1.5rem;" class="services-grid">
       <?php
       $services = [
         ['id' => 'visa',      'title' => 'Visa Sponsorship',      'desc' => 'Work, study, and travel visas with verified sponsors',           'img' => BASE . '/public/images/Visa-sponsorship.jpg',       'icon' => 'globe'],
@@ -166,7 +182,7 @@ require_once __DIR__ . '/includes/navbar.php';
         ['id' => 'residence', 'title' => 'Permanent Residence',    'desc' => 'Pathways to citizenship through investment and work',             'img' => BASE . '/public/images/permanent-resident.jpg',       'icon' => 'home'],
       ];
       foreach ($services as $i => $srv): ?>
-        <a href="<?= BASE ?>/services.php#<?= $srv['id'] ?>" class="image-card service-card" data-animate="fade-up" data-delay="<?= $i * 100 ?>" style="height:20rem;display:block;text-decoration:none;">
+        <a href="<?= BASE ?>/services.php#<?= $srv['id'] ?>" class="image-card service-card" data-animate="fade-up" data-delay="<?= $i * 100 ?>" style="min-height:16rem;display:flex;flex-direction:column;text-decoration:none;">
           <div class="image-card-bg" style="background-image:url('<?= $srv['img'] ?>');" onerror="this.style.background='#0B1D3A'"></div>
           <div class="image-card-overlay"></div>
           <div class="image-card-content">
@@ -201,7 +217,8 @@ require_once __DIR__ . '/includes/navbar.php';
 </section>
 
 <style>
-@media (min-width:768px) { .services-grid { grid-template-columns: repeat(2,1fr) !important; } }
+.services-grid { grid-template-columns: 1fr; }
+@media (min-width:768px) { .services-grid { grid-template-columns: repeat(2,1fr); } }
 </style>
 
 <!-- ════════════════════════════════════════════════════════════
@@ -209,8 +226,8 @@ require_once __DIR__ . '/includes/navbar.php';
      ════════════════════════════════════════════════════════════ -->
 <section style="padding-block:5rem;background:linear-gradient(to bottom,var(--color-navy),rgba(11,29,58,0.95));position:relative;overflow:hidden;">
   <!-- Blobs -->
-  <div style="position:absolute;top:0;left:33%;width:24rem;height:24rem;background:rgba(201,164,75,0.05);border-radius:50%;filter:blur(60px);pointer-events:none;"></div>
-  <div style="position:absolute;bottom:0;right:33%;width:20rem;height:20rem;background:rgba(29,122,122,0.05);border-radius:50%;filter:blur(60px);pointer-events:none;"></div>
+  <div style="position:absolute;top:0;left:33%;width:min(24rem,60vw);height:min(24rem,60vw);background:rgba(201,164,75,0.05);border-radius:50%;filter:blur(60px);pointer-events:none;"></div>
+  <div style="position:absolute;bottom:0;right:33%;width:min(20rem,50vw);height:min(20rem,50vw);background:rgba(29,122,122,0.05);border-radius:50%;filter:blur(60px);pointer-events:none;"></div>
 
   <div class="container" style="position:relative;">
     <!-- Header -->
@@ -226,7 +243,7 @@ require_once __DIR__ . '/includes/navbar.php';
     </div>
 
     <!-- Partner cards -->
-    <div style="display:grid;grid-template-columns:1fr;gap:1.5rem;" class="partners-grid">
+    <div style="display:grid;gap:1.5rem;" class="partners-grid">
       <?php
       $partners = [
         [
@@ -274,7 +291,8 @@ require_once __DIR__ . '/includes/navbar.php';
 </section>
 
 <style>
-@media (min-width:768px) { .partners-grid { grid-template-columns: repeat(3,1fr) !important; } }
+.partners-grid { grid-template-columns: 1fr; }
+@media (min-width:768px) { .partners-grid { grid-template-columns: repeat(3,1fr); } }
 </style>
 
 <!-- ════════════════════════════════════════════════════════════
@@ -287,7 +305,7 @@ require_once __DIR__ . '/includes/navbar.php';
       <p>Real stories from real people who achieved their global dreams</p>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr;gap:1.5rem;" class="testimonials-grid">
+    <div style="display:grid;gap:1.5rem;" class="testimonials-grid">
       <?php
       $testimonials = [
         ['name' => 'Sarah Chen',       'country' => 'Singapore', 'code' => 'sg', 'type' => 'Visa Sponsorship',     'quote' => 'Lotoks made my dream of working in Europe a reality. The process was smooth and transparent.',         'rating' => 5],
@@ -329,7 +347,8 @@ require_once __DIR__ . '/includes/navbar.php';
 </section>
 
 <style>
-@media (min-width:768px) { .testimonials-grid { grid-template-columns: repeat(3,1fr) !important; } }
+.testimonials-grid { grid-template-columns: 1fr; }
+@media (min-width:768px) { .testimonials-grid { grid-template-columns: repeat(3,1fr); } }
 </style>
 
 <!-- ════════════════════════════════════════════════════════════
@@ -337,7 +356,7 @@ require_once __DIR__ . '/includes/navbar.php';
      ════════════════════════════════════════════════════════════ -->
 <section style="padding-block:5rem;background:rgba(11,29,58,0.05);">
   <div class="container">
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem;" class="stats-grid">
+    <div style="display:grid;gap:1.5rem;" class="stats-grid">
       <?php
       $stats = [
         ['count' => 5000, 'suffix' => '+',       'label' => 'Applications Processed', 'duration' => 2000],
@@ -366,7 +385,8 @@ require_once __DIR__ . '/includes/navbar.php';
 </section>
 
 <style>
-@media (min-width:768px) { .stats-grid { grid-template-columns: repeat(4,1fr) !important; } }
+.stats-grid { grid-template-columns: repeat(2,1fr); }
+@media (min-width:768px) { .stats-grid { grid-template-columns: repeat(4,1fr); } }
 </style>
 
 <!-- ════════════════════════════════════════════════════════════
@@ -420,7 +440,7 @@ require_once __DIR__ . '/includes/navbar.php';
 </section>
 <style>
 @media (min-width:640px) {
-  .cta-section > div > div:last-child { flex-direction: row !important; }
+  .cta-section > div > div:last-child { flex-direction: row; }
 }
 </style>
 

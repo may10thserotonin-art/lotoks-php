@@ -7,45 +7,107 @@
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/db/connect.php';
 
-// Already logged in → redirect
+// Already logged in → redirect to the right place
+if (is_admin_logged_in()) {
+    redirect('/admin/index.php');
+}
 if (is_user_logged_in()) {
     $r = $_GET['redirect'] ?? '';
     if (!$r || !str_starts_with($r, BASE)) {
-        $r = BASE . '/dashboard.php';
+        $r = '/dashboard.php';
+    } else {
+        $r = substr($r, strlen(BASE));
+        if ($r === '' || $r === false) {
+            $r = '/dashboard.php';
+        }
     }
     redirect($r);
 }
 
+
 $error       = '';
 $redirect_to = $_GET['redirect'] ?? '';
 if (!$redirect_to || !str_starts_with($redirect_to, BASE)) {
-    $redirect_to = BASE . '/dashboard.php';
+    $redirect_to = '/dashboard.php';
+} else {
+    // Strip BASE prefix if present (eligibility.php and requireUserAuth
+    // already include it). redirect() will re-add BASE, so we need the
+    // root-relative form here.
+    $redirect_to = substr($redirect_to, strlen(BASE));
+    if ($redirect_to === '' || $redirect_to === false) {
+        $redirect_to = '/dashboard.php';
+    }
 }
 $redirect_to = htmlspecialchars($redirect_to);
 
 // Handle POST login
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email    = strtolower(trim($_POST['email'] ?? ''));
-    $password = $_POST['password'] ?? '';
+    // ── CSRF Verification ─────────────────────────────────────────
+    // (The form renders csrf_field() but it was never verified!)
+    if (!csrf_verify()) {
+        $error = 'Invalid session token. Please reload the page and try again.';
+    }
 
-    if (!$email || !$password) {
-        $error = 'Email and password are required.';
-    } else {
-        $db   = getDb();
-        $stmt = $db->prepare('SELECT id, name, email, country, password_hash, created_at FROM users WHERE email = ?');
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
+    // ── Rate limiting check (per-IP) ──────────────────────────────
+    if (!$error && isRateLimited('login_user')) {
+        $error = 'Too many login attempts from this IP address. Please try again in 15 minutes.';
+    }
 
-        if (!$user || !$user['password_hash']) {
-            $error = 'Invalid email or password.';
-        } elseif (!verify_password($password, $user['password_hash'])) {
-            $error = 'Invalid email or password.';
+    if (!$error) {
+        $email    = strtolower(trim($_POST['email'] ?? ''));
+        $password = $_POST['password'] ?? '';
+
+        if (!$email || !$password) {
+            $error = 'Email and password are required.';
         } else {
-            user_login($user);
-            redirect($redirect_to);
+            // ── Account lockout check (per-account) ──────────────
+            $lockStatus = checkAccountLocked($email, 'login_user');
+            if ($lockStatus['locked']) {
+                $error = $lockStatus['message'];
+            }
+
+            if (!$error) {
+                $db = getDb();
+
+                // ── 1. Check admins table first ───────────────────────
+                $stmt = $db->prepare('SELECT id, name, email, role, password_hash, login_attempts, locked_until FROM admins WHERE email = ?');
+                $stmt->execute([$email]);
+                $admin = $stmt->fetch();
+
+                if ($admin && $admin['password_hash'] && verify_password($password, $admin['password_hash'])) {
+                    // Admin login success → clear lockout, set admin session
+                    clearAccountLock($email, 'login_admin');
+                    recordAttempt('login_user', true, $email);
+                    admin_login($admin);
+                    redirect('/admin/index.php');
+                }
+
+                // ── 2. Fall through to regular user check ─────────────
+                $stmt = $db->prepare('SELECT id, name, email, country, password_hash, created_at, suspended, login_attempts, locked_until FROM users WHERE email = ?');
+                $stmt->execute([$email]);
+                $user = $stmt->fetch();
+
+                if (!$user || !$user['password_hash']) {
+                    $error = 'Invalid email or password.';
+                    recordAttempt('login_user', false, $email);
+                } elseif (!verify_password($password, $user['password_hash'])) {
+                    $error = 'Invalid email or password.';
+                    recordAttempt('login_user', false, $email);
+                } elseif (!empty($user['suspended'])) {
+                    $error = 'Your account has been suspended. Please contact support for assistance.';
+                    recordAttempt('login_user', false, $email);
+                } else {
+                    // Success → clear lockout, log in
+                    clearAccountLock($email, 'login_user');
+                    recordAttempt('login_user', true, $email);
+                    user_login($user);
+                    redirect($redirect_to);
+                }
+            }
         }
     }
 }
+
 
 $page_title       = 'Sign In | Lotoks';
 $page_description = 'Sign in to your Lotoks account to access your dashboard, applications, and opportunities.';
@@ -70,8 +132,8 @@ require_once __DIR__ . '/includes/head.php';
   position: absolute;
   top: -10rem;
   left: -10rem;
-  width: 30rem;
-  height: 30rem;
+  width: min(30rem, 75vw);
+  height: min(30rem, 75vw);
   background: rgba(201,164,75,0.06);
   border-radius: 50%;
   filter: blur(60px);
@@ -83,8 +145,8 @@ require_once __DIR__ . '/includes/head.php';
   position: absolute;
   bottom: -10rem;
   right: -10rem;
-  width: 30rem;
-  height: 30rem;
+  width: min(30rem, 75vw);
+  height: min(30rem, 75vw);
   background: rgba(35,73,225,0.06);
   border-radius: 50%;
   filter: blur(60px);
@@ -218,9 +280,9 @@ require_once __DIR__ . '/includes/head.php';
 
   <!-- Mini footer -->
   <div style="margin-top:2rem;display:flex;align-items:center;gap:1.5rem;">
-    <a href="<?= BASE ?>/privacy.php"  style="color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Privacy</a>
-    <a href="<?= BASE ?>/terms.php"    style="color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Terms</a>
-    <a href="<?= BASE ?>/contact.php"  style="color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Contact</a>
+    <a href="<?= BASE ?>/privacy.php"  style="color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;padding:0.625rem 0.5rem;min-height:44px;display:inline-flex;align-items:center;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Privacy</a>
+    <a href="<?= BASE ?>/terms.php"    style="color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;padding:0.625rem 0.5rem;min-height:44px;display:inline-flex;align-items:center;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Terms</a>
+    <a href="<?= BASE ?>/contact.php"  style="color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;padding:0.625rem 0.5rem;min-height:44px;display:inline-flex;align-items:center;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Contact</a>
   </div>
 
   <!-- ── Developer PIN Modal (matches Login.tsx PIN=091344) ── -->
@@ -297,11 +359,15 @@ require_once __DIR__ . '/includes/head.php';
   function verifyPin() {
     const entered = Array.from(pinInputs).map(i => i.value).join('');
     if (entered === DEV_PIN) {
-      // Set mock user in session via AJAX, then redirect to dashboard
+      // Set mock user in session via AJAX, then respect the ?redirect= parameter
+      const params = new URLSearchParams(window.location.search);
+      const redirectTarget = params.get('redirect')
+        ? decodeURIComponent(params.get('redirect'))
+        : ('<?= BASE ?>' + '/dashboard.php');
       fetch('<?= BASE ?>/api/dev-login.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: entered }), credentials: 'same-origin' })
         .then(r => r.json())
         .then(d => {
-          if (d.success) { window.location.href = '<?= BASE ?>/dashboard.php'; }
+          if (d.success) { window.location.href = redirectTarget; }
           else { showPinError(); }
         })
         .catch(() => showPinError());

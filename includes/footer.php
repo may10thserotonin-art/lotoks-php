@@ -9,7 +9,7 @@ $year = date('Y');
 <footer class="site-footer">
   <!-- Main footer body -->
   <div style="max-width:80rem;margin-inline:auto;padding:4rem 1rem;">
-    <div style="display:grid;grid-template-columns:1fr;gap:2.5rem;">
+    <div style="display:grid; gap:2.5rem;" class="footer-main-grid">
 
       <!-- Brand column -->
       <div>
@@ -48,7 +48,7 @@ $year = date('Y');
       </div>
 
       <!-- Links grid -->
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:2rem;">
+      <div style="display:grid; gap:2rem;" class="footer-links-grid">
         <!-- Services -->
         <div>
           <h4 style="font-family:var(--font-heading);font-weight:600;font-size:1rem;margin-bottom:1rem;color:var(--color-gold);">Services</h4>
@@ -88,16 +88,60 @@ $year = date('Y');
           <ul style="list-style:none;display:flex;flex-direction:column;gap:0.75rem;margin-bottom:2rem;">
             <li><a href="<?= BASE ?>/privacy.php"    style="color:rgba(255,255,255,0.6);text-decoration:none;font-size:0.875rem;transition:color 0.2s;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">Privacy Policy</a></li>
             <li><a href="<?= BASE ?>/terms.php"      style="color:rgba(255,255,255,0.6);text-decoration:none;font-size:0.875rem;transition:color 0.2s;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">Terms of Service</a></li>
-            <li><a href="<?= BASE ?>/cookies.php"    style="color:rgba(255,255,255,0.6);text-decoration:none;font-size:0.875rem;transition:color 0.2s;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">Cookie Policy</a></li>
-            <li><a href="<?= BASE ?>/disclaimer.php" style="color:rgba(255,255,255,0.6);text-decoration:none;font-size:0.875rem;transition:color 0.2s;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">Disclaimer</a></li>
+            <li><a href="<?= BASE ?>/refund.php"     style="color:rgba(255,255,255,0.6);text-decoration:none;font-size:0.875rem;transition:color 0.2s;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">Refund Policy</a></li>
           </ul>
 
-          <!-- Stay updated box -->
+          <!-- Stay updated box — Newsletter Signup -->
           <div style="padding:1rem;border-radius:0.75rem;background:rgba(201,164,75,0.1);border:1px solid rgba(201,164,75,0.2);">
             <h5 style="font-family:var(--font-heading);font-weight:600;margin-bottom:0.5rem;color:#fff;">Stay Updated</h5>
-            <p style="font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:0.75rem;">Get the latest news and updates</p>
-            <a href="<?= BASE ?>/contact.php" class="btn btn-secondary btn-sm btn-full btn-pill" style="justify-content:center;">Subscribe</a>
+            <p style="font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:0.75rem;">Get the latest news and opportunities</p>
+            <form id="newsletter-form" action="<?= BASE ?>/api/newsletter-subscribe.php" method="POST" style="display:flex;flex-direction:column;gap:0.5rem;">
+              <?= csrf_field() ?>
+              <input
+                type="email"
+                name="email"
+                placeholder="Your email address"
+                required
+                style="padding:0.625rem 0.75rem;border-radius:999px;border:none;font-size:0.8rem;background:rgba(255,255,255,0.12);color:#fff;outline:none;"
+                onfocus="this.style.background='rgba(255,255,255,0.2)'"
+                onblur="this.style.background='rgba(255,255,255,0.12)'"
+              />
+              <button type="submit" class="btn btn-secondary btn-sm btn-full btn-pill" style="justify-content:center;">
+                Subscribe
+              </button>
+            </form>
+            <div id="newsletter-msg" style="font-size:0.75rem;margin-top:0.5rem;display:none;"></div>
           </div>
+          <script>
+          document.getElementById('newsletter-form')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form  = this;
+            const btn   = form.querySelector('button[type="submit"]');
+            const msgEl = document.getElementById('newsletter-msg');
+            const data  = new FormData(form);
+            const origText = btn.textContent;
+            btn.textContent = 'Sending...';
+            btn.disabled = true;
+            msgEl.style.display = 'none';
+            fetch(form.action, { method: 'POST', body: data })
+              .then(r => r.json())
+              .then(d => {
+                msgEl.textContent = d.message;
+                msgEl.style.display = 'block';
+                msgEl.style.color = d.success ? '#4ade80' : '#f87171';
+                if (d.success) form.querySelector('input[name="email"]').value = '';
+              })
+              .catch(() => {
+                msgEl.textContent = 'An error occurred. Please try again.';
+                msgEl.style.display = 'block';
+                msgEl.style.color = '#f87171';
+              })
+              .finally(() => {
+                btn.textContent = origText;
+                btn.disabled = false;
+              });
+          });
+          </script>
         </div>
       </div>
     </div>
@@ -142,12 +186,20 @@ $year = date('Y');
 </footer>
 
 <style>
+.footer-main-grid { grid-template-columns: 1fr; }
+.footer-links-grid { grid-template-columns: 1fr; }
+
+@media (min-width: 576px) {
+  .footer-links-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (min-width: 768px) {
-  .site-footer > div:first-child > div { grid-template-columns: 2fr 4fr !important; }
+  .footer-main-grid { grid-template-columns: 1.25fr 2.75fr; }
   .site-footer .footer-bottom div > div { flex-direction: row !important; }
   .footer-love { display: block !important; }
 }
+
 @media (min-width: 1024px) {
-  .site-footer > div:first-child > div { grid-template-columns: 2fr 1fr 1fr 1fr 1fr !important; }
+  .footer-links-grid { grid-template-columns: repeat(4, 1fr); }
 }
 </style>

@@ -24,10 +24,22 @@ function nav_is_active(string $uri, string $href): bool {
     return $uri === $href || str_starts_with($uri, $href . '/') || str_starts_with($uri, $href . '.');
 }
 ?>
+<?php
+// Check impersonation (navbar can be loaded before auth.php is called on some pages)
+$isImp = function_exists('is_impersonating') && is_impersonating();
+$impUser = $isImp && isset($_SESSION['user']['name']) ? $_SESSION['user']['name'] : '';
+?>
+<?php if ($isImp): ?>
+<div style="background:#dc2626;color:white;text-align:center;padding:0.4rem 1rem;font-size:0.8rem;font-weight:600;position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;">
+  <span>🔐 Impersonating <strong><?= htmlspecialchars($impUser) ?></strong></span>
+  <a href="<?= BASE ?>/admin/impersonate.php?action=stop" style="color:white;text-decoration:underline;font-size:0.75rem;">Switch Back to Admin</a>
+</div>
+<?php endif; ?>
+
 <header
   class="site-navbar"
   id="site-navbar"
-  style="position:fixed;top:0;left:0;right:0;z-index:50;transition:background 0.3s,padding 0.3s,box-shadow 0.3s;padding:1.25rem 0;background:transparent;"
+  style="position:fixed;top:<?= $isImp ? '2.25rem' : '0' ?>;left:0;right:0;z-index:50;transition:background 0.3s,padding 0.3s,box-shadow 0.3s;padding:1.25rem 0;background:transparent;"
   aria-label="Main navigation"
 >
   <div style="max-width:80rem;margin-inline:auto;padding-inline:1rem;">
@@ -185,12 +197,23 @@ function nav_is_active(string $uri, string $href): bool {
   const iconC = document.getElementById('nav-icon-close');
 
   if (btn && panel) {
-    btn.addEventListener('click', () => {
+    function toggleMenu() {
       const open = panel.style.display !== 'none' && panel.style.display !== '';
       panel.style.display = open ? 'none' : 'block';
       iconO.style.display = open ? 'block' : 'none';
       iconC.style.display = open ? 'none'  : 'block';
       btn.setAttribute('aria-expanded', String(!open));
+    }
+    btn.addEventListener('click', toggleMenu);
+    
+    // Close on link click
+    const navLinks = panel.querySelectorAll('a');
+    navLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        if (panel.style.display === 'block') {
+          toggleMenu();
+        }
+      });
     });
   }
 

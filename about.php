@@ -1,9 +1,10 @@
-﻿<?php
+<?php
 /**
  * Lotoks — About Us (about.php)
  * Converted from pages/About.tsx
  */
 require_once __DIR__ . '/includes/auth.php';
+redirect_if_logged_in();
 
 $page_title       = 'About Us | Lotoks';
 $page_description = 'Empowering global mobility through innovation and trust. Learn about the mission, values, and team behind Lotoks.';
@@ -35,7 +36,7 @@ require_once __DIR__ . '/includes/navbar.php';
      ════════════════════════════════════════════════════════════ -->
 <section class="section-wrapper" style="background:linear-gradient(to bottom, var(--color-surface), #fff);">
   <div class="container">
-    <div style="display:grid; grid-template-columns:1fr; gap:3rem; align-items:center;" class="mission-grid">
+    <div style="display:grid; gap:3rem; align-items:center;" class="mission-grid">
       
       <!-- Text content -->
       <div data-animate="fade-up">
@@ -105,7 +106,7 @@ require_once __DIR__ . '/includes/navbar.php';
       <p>The principles that guide everything we do</p>
     </div>
 
-    <div style="display:grid; grid-template-columns:1fr; gap:2rem;" class="values-grid">
+    <div style="display:grid; gap:2rem;" class="values-grid">
       <?php
       $values = [
         [
@@ -196,7 +197,7 @@ require_once __DIR__ . '/includes/navbar.php';
       <p>The passionate people behind Lotoks</p>
     </div>
 
-    <div style="display:grid; grid-template-columns:1fr; gap:2rem;" class="team-grid">
+    <div style="display:grid; gap:2rem;" class="team-grid">
       <?php
       $team = [
         [
@@ -256,8 +257,8 @@ require_once __DIR__ . '/includes/navbar.php';
      PARTNERS SECTION
      ════════════════════════════════════════════════════════════ -->
 <section style="padding-block:6rem; background:linear-gradient(to bottom, var(--color-navy), rgba(11,29,58,0.95)); position:relative; overflow:hidden;">
-  <div style="position:absolute; top:0; left:33%; width:24rem; height:24rem; background:rgba(201,164,75,0.05); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
-  <div style="position:absolute; bottom:0; right:33%; width:20rem; height:20rem; background:rgba(29,122,122,0.05); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
+  <div style="position:absolute; top:0; left:33%; width:min(24rem,60vw); height:min(24rem,60vw); background:rgba(201,164,75,0.05); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
+  <div style="position:absolute; bottom:0; right:33%; width:min(20rem,50vw); height:min(20rem,50vw); background:rgba(29,122,122,0.05); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
 
   <div class="container" style="position:relative; z-index:10;">
     <div style="text-align:center; margin-bottom:4rem;" data-animate="fade-up">
@@ -271,7 +272,7 @@ require_once __DIR__ . '/includes/navbar.php';
       </p>
     </div>
 
-    <div style="display:grid; grid-template-columns:1fr; gap:2rem;" class="partners-grid-about">
+    <div style="display:grid; gap:2rem;" class="partners-grid-about">
       <?php
       $partners = [
         [
@@ -332,7 +333,7 @@ require_once __DIR__ . '/includes/navbar.php';
      ════════════════════════════════════════════════════════════ -->
 <section class="section-wrapper bg-surface" style="background:rgba(11,29,58,0.03);">
   <div class="container">
-    <div style="display:grid; grid-template-columns:1fr; gap:1.5rem;" class="stats-grid-about">
+    <div style="display:grid; gap:1.5rem;" class="stats-grid-about">
       <?php
       $stats = [
         ["number" => "150", "suffix" => "+", "label" => "Countries Covered"],
@@ -382,14 +383,17 @@ require_once __DIR__ . '/includes/navbar.php';
 <!-- Styles for responsiveness -->
 <style>
 /* Mission layout */
+@media (min-width: 768px) {
+  .mission-grid { grid-template-columns: 1fr 1fr; }
+}
 @media (min-width: 1024px) {
-  .mission-grid { grid-template-columns: 1.2fr 0.8fr !important; }
+  .mission-grid { grid-template-columns: 1.2fr 0.8fr; }
 }
 
 /* Values layout */
 .values-grid { grid-template-columns: 1fr; }
 @media (min-width: 768px) {
-  .values-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .values-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
 /* Timeline Layout */
@@ -409,9 +413,9 @@ require_once __DIR__ . '/includes/navbar.php';
 }
 .timeline-dot {
   position: absolute;
-  left: 1rem;
+  left: 0.5rem;
   top: 0.5rem;
-  transform: translateX(-50%);
+  transform: none;
   width: 1rem;
   height: 1rem;
   border-radius: 50%;
@@ -439,6 +443,7 @@ require_once __DIR__ . '/includes/navbar.php';
   }
   .timeline-dot {
     left: 50%;
+    transform: translateX(-50%);
   }
   .timeline-item.left-aligned {
     justify-content: flex-end;
@@ -447,12 +452,13 @@ require_once __DIR__ . '/includes/navbar.php';
     justify-content: flex-start;
   }
   .timeline-item.left-aligned .timeline-card-content {
-    width: 45%;
+    width: calc(50% - 2rem);
     text-align: right;
   }
   .timeline-item.right-aligned .timeline-card-content {
-    width: 45%;
+    width: calc(50% - 2rem);
     margin-left: auto;
+    margin-right: 0;
     text-align: left;
   }
 }
@@ -460,10 +466,17 @@ require_once __DIR__ . '/includes/navbar.php';
 /* Team Grid */
 .team-grid { grid-template-columns: 1fr; }
 @media (min-width: 576px) {
-  .team-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .team-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 576px) and (max-width: 991px) {
+  .team-grid > .team-member:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    max-width: 280px;
+    margin-inline: auto;
+  }
 }
 @media (min-width: 992px) {
-  .team-grid { grid-template-columns: repeat(4, 1fr) !important; }
+  .team-grid { grid-template-columns: repeat(5, 1fr); }
 }
 
 .team-member:hover img {

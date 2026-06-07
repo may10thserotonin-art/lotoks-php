@@ -1,9 +1,10 @@
-﻿<?php
+<?php
 /**
  * Lotoks — Candidate Success Stories (testimonials.php)
  * Converted from pages/Testimonials.tsx
  */
 require_once __DIR__ . '/includes/auth.php';
+redirect_if_logged_in();
 
 $page_title       = 'Success Stories | Lotoks';
 $page_description = 'Real success stories from candidates who have relocated to Europe, the UK, Poland, and Lithuania with Lotoks sponsorship.';
@@ -272,8 +273,8 @@ $galleryImages = [
      VIDEO TESTIMONIALS SECTION
      ════════════════════════════════════════════════════════════ -->
 <section class="section-wrapper" style="background:linear-gradient(to bottom, var(--color-surface), #fff); position:relative; overflow:hidden;">
-  <div style="position:absolute; top:10rem; right:0; width:500px; height:500px; background:rgba(201,164,75,0.03); border-radius:50%; filter:blur(100px); pointer-events:none;"></div>
-  <div style="position:absolute; bottom:5rem; left:0; width:400px; height:400px; background:rgba(29,122,122,0.03); border-radius:50%; filter:blur(100px); pointer-events:none;"></div>
+  <div style="position:absolute; top:10rem; right:0; width:min(500px, 75vw); height:min(500px, 75vw); background:rgba(201,164,75,0.03); border-radius:50%; filter:blur(100px); pointer-events:none;"></div>
+  <div style="position:absolute; bottom:5rem; left:0; width:min(400px, 60vw); height:min(400px, 60vw); background:rgba(29,122,122,0.03); border-radius:50%; filter:blur(100px); pointer-events:none;"></div>
 
   <div class="container" style="position:relative; z-index:10;">
     <div class="section-heading center dark" data-animate="fade-up">
@@ -281,7 +282,7 @@ $galleryImages = [
       <p>Hear and see directly from our successful graduates and sponsored candidates</p>
     </div>
 
-    <div style="display:grid; grid-template-columns:1fr; gap:2rem;" class="videos-grid-layout">
+    <div style="display:grid; gap:2rem;" class="videos-grid-layout">
       <?php 
       $vIdx = 0;
       foreach ($videoTestimonials as $t): 
@@ -382,7 +383,7 @@ $galleryImages = [
       <p>Real experiences from real people who transformed their lives</p>
     </div>
 
-    <div style="display:grid; grid-template-columns:1fr; gap:2rem;" class="featured-grid-layout">
+    <div style="display:grid; gap:2rem;" class="featured-grid-layout">
       <?php 
       foreach ($featuredTestimonials as $idx => $t): 
         $isLong = strlen($t['quote']) > 240;
@@ -439,8 +440,8 @@ $galleryImages = [
      ════════════════════════════════════════════════════════════ -->
 <section class="section-wrapper" style="background:#fff; position:relative; overflow:hidden;">
   <!-- Ambient background accents -->
-  <div style="position:absolute; top:0; right:25%; width:24rem; height:24rem; background:rgba(201,164,75,0.03); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
-  <div style="position:absolute; bottom:0; left:25%; width:24rem; height:24rem; background:rgba(29,122,122,0.03); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
+  <div style="position:absolute; top:0; right:25%; width:min(24rem,60vw); height:min(24rem,60vw); background:rgba(201,164,75,0.03); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
+  <div style="position:absolute; bottom:0; left:25%; width:min(24rem,60vw); height:min(24rem,60vw); background:rgba(29,122,122,0.03); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
 
   <div class="container" style="position:relative; z-index:10;">
     <div style="margin-bottom:3.5rem;" data-animate="fade-up">
@@ -453,7 +454,7 @@ $galleryImages = [
     </div>
 
     <!-- Proof Gallery Grid -->
-    <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:1.25rem;" class="proofs-grid-layout" data-animate="fade-up">
+    <div style="display:grid; gap:1.25rem;" class="proofs-grid-layout" data-animate="fade-up">
       <?php foreach ($truckDriverProofs as $proof): ?>
         <div class="proof-card" 
              data-image="<?= htmlspecialchars($proof['image']) ?>" 
@@ -481,8 +482,8 @@ $galleryImages = [
      OUR GALLERY SECTION
      ════════════════════════════════════════════════════════════ -->
 <section class="section-wrapper" style="background:linear-gradient(to bottom, #fff, var(--color-surface)); position:relative; overflow:hidden;">
-  <div style="position:absolute; top:5rem; left:0; width:400px; height:400px; background:rgba(201,164,75,0.03); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
-  <div style="position:absolute; bottom:5rem; right:0; width:400px; height:400px; background:rgba(29,122,122,0.03); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
+  <div style="position:absolute; top:5rem; left:0; width:min(400px, 60vw); height:min(400px, 60vw); background:rgba(201,164,75,0.03); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
+  <div style="position:absolute; bottom:5rem; right:0; width:min(400px, 60vw); height:min(400px, 60vw); background:rgba(29,122,122,0.03); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
 
   <div class="container" style="position:relative; z-index:10;">
     <div style="text-align:center; margin-bottom:4rem;" data-animate="fade-up">
@@ -495,7 +496,7 @@ $galleryImages = [
     </div>
 
     <!-- Gallery Uniform Grid -->
-    <div style="display:grid; grid-template-columns:1fr; gap:2rem;" class="gallery-grid-layout" data-animate="fade-up">
+    <div style="display:grid; gap:2rem;" class="gallery-grid-layout" data-animate="fade-up">
       <?php foreach ($galleryImages as $gidx => $img): ?>
         <div class="gallery-card" data-image="<?= htmlspecialchars($img['src']) ?>" style="background:#fff; border-radius:1rem; overflow:hidden; box-shadow:var(--shadow-card); border:1px solid rgba(11,29,58,0.04); cursor:pointer; transition:all 0.4s ease;">
           <div style="aspect-ratio:4/3; overflow:hidden; position:relative; background:var(--color-navy);" class="img-container">
@@ -533,7 +534,7 @@ $galleryImages = [
      ════════════════════════════════════════════════════════════ -->
 <section style="padding-block:5rem; background:rgba(11,29,58,0.03); border-block:1px solid rgba(11,29,58,0.05);">
   <div class="container">
-    <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:2rem;" class="stats-grid-testimonials">
+    <div style="display:grid; gap:2rem;" class="stats-grid-testimonials">
       <?php
       $stats = [
         ["count" => 50000, "suffix" => "+", "label" => "Happy Applicants"],
@@ -577,7 +578,7 @@ $galleryImages = [
     </div>
 
     <!-- Grid -->
-    <div style="display:grid; grid-template-columns:1fr; gap:2rem;" class="stories-main-grid" data-animate="fade-up">
+    <div style="display:grid; gap:2rem;" class="stories-main-grid" data-animate="fade-up">
       <?php 
       foreach ($testimonials as $tIdx => $t): 
         $isLong = strlen($t['quote']) > 240;
@@ -703,8 +704,8 @@ $galleryImages = [
 <style>
 /* Video Grid layout */
 .videos-grid-layout { grid-template-columns: 1fr; }
-@media (min-width: 576px) { .videos-grid-layout { grid-template-columns: repeat(2, 1fr) !important; } }
-@media (min-width: 992px) { .videos-grid-layout { grid-template-columns: repeat(4, 1fr) !important; } }
+@media (min-width: 576px) { .videos-grid-layout { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 992px) { .videos-grid-layout { grid-template-columns: repeat(4, 1fr); } }
 
 /* Video card component styles */
 .video-testimonial-card {
@@ -878,7 +879,7 @@ $galleryImages = [
 
 /* Featured Success Stories cards */
 .featured-grid-layout { grid-template-columns: 1fr; }
-@media (min-width: 768px) { .featured-grid-layout { grid-template-columns: repeat(3, 1fr) !important; } }
+@media (min-width: 768px) { .featured-grid-layout { grid-template-columns: repeat(3, 1fr); } }
 
 .success-story-card {
   position: relative;
@@ -920,8 +921,8 @@ $galleryImages = [
 
 /* Proofs layout */
 .proofs-grid-layout { grid-template-columns: repeat(2, 1fr); }
-@media (min-width: 768px) { .proofs-grid-layout { grid-template-columns: repeat(3, 1fr) !important; } }
-@media (min-width: 992px) { .proofs-grid-layout { grid-template-columns: repeat(4, 1fr) !important; } }
+@media (min-width: 768px) { .proofs-grid-layout { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 992px) { .proofs-grid-layout { grid-template-columns: repeat(4, 1fr); } }
 
 .proof-card:hover {
   border-color: rgba(201,164,75,0.4) !important;
@@ -937,8 +938,8 @@ $galleryImages = [
 
 /* Gallery layout */
 .gallery-grid-layout { grid-template-columns: 1fr; }
-@media (min-width: 576px) { .gallery-grid-layout { grid-template-columns: repeat(2, 1fr) !important; } }
-@media (min-width: 992px) { .gallery-grid-layout { grid-template-columns: repeat(3, 1fr) !important; } }
+@media (min-width: 576px) { .gallery-grid-layout { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 992px) { .gallery-grid-layout { grid-template-columns: repeat(3, 1fr); } }
 
 .gallery-card:hover {
   transform: translateY(-8px);
@@ -971,12 +972,12 @@ $galleryImages = [
 
 /* Stats layout */
 .stats-grid-testimonials { grid-template-columns: repeat(2, 1fr); }
-@media (min-width: 768px) { .stats-grid-testimonials { grid-template-columns: repeat(4, 1fr) !important; } }
+@media (min-width: 768px) { .stats-grid-testimonials { grid-template-columns: repeat(4, 1fr); } }
 
 /* Stories grid client filtering */
 .stories-main-grid { grid-template-columns: 1fr; }
-@media (min-width: 768px) { .stories-main-grid { grid-template-columns: repeat(2, 1fr) !important; } }
-@media (min-width: 992px) { .stories-main-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+@media (min-width: 768px) { .stories-main-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 992px) { .stories-main-grid { grid-template-columns: repeat(3, 1fr); } }
 
 .stories-filter-buttons .filter-btn {
   padding: 0.6rem 1.25rem;
@@ -1042,7 +1043,7 @@ $galleryImages = [
 /* CTA buttons layout */
 .cta-btns { flex-direction: column; }
 @media (min-width: 576px) {
-  .cta-btns { flex-direction: row !important; }
+  .cta-btns { flex-direction: row; }
 }
 
 /* Modals overlays default open transitions */

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Lotoks — Register Page (register.php)
  * Converted from pages/Signup.tsx / Register.tsx
@@ -6,6 +6,7 @@
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/db/connect.php';
 
+if (is_admin_logged_in()) redirect('/admin/index.php');
 if (is_user_logged_in()) redirect('/dashboard.php');
 
 $error   = '';
@@ -39,6 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $user = ['id' => $userId, 'name' => $name, 'email' => $email, 'country' => ''];
             user_login($user);
+
+            // Log registration
+            log_activity($userId, null, 'user_registration', "User registered: {$name} ({$email})");
+
+            // ── Send welcome email ──────────────────────────────────────
+            $dashboardUrl = SITE_URL . BASE . '/dashboard.php';
+            $welcomeHTML  = (require __DIR__ . '/includes/emails/welcome.php')($name, $dashboardUrl);
+            sendEmail($email, 'Welcome to Lotoks!', $welcomeHTML);
+
             redirect('/dashboard.php');
         }
     }
@@ -49,17 +59,17 @@ $page_description = 'Create your free Lotoks account and start your journey to g
 require_once __DIR__ . '/includes/head.php';
 ?>
 <div class="login-page-bg" style="min-height:100vh;background:var(--color-navy);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;position:relative;overflow:hidden;">
-  <div style="position:absolute;top:-10rem;right:-10rem;width:30rem;height:30rem;background:rgba(201,164,75,0.06);border-radius:50%;filter:blur(60px);pointer-events:none;"></div>
-  <div style="position:absolute;bottom:-10rem;left:-10rem;width:30rem;height:30rem;background:rgba(35,73,225,0.06);border-radius:50%;filter:blur(60px);pointer-events:none;"></div>
+  <div style="position:absolute;top:-10rem;right:-10rem;width:min(30rem, 75vw);height:min(30rem, 75vw);background:rgba(201,164,75,0.06);border-radius:50%;filter:blur(60px);pointer-events:none;"></div>
+  <div style="position:absolute;bottom:-10rem;left:-10rem;width:min(30rem, 75vw);height:min(30rem, 75vw);background:rgba(35,73,225,0.06);border-radius:50%;filter:blur(60px);pointer-events:none;"></div>
 
-  <a href="/" style="position:absolute;top:1.5rem;left:1.5rem;display:flex;align-items:center;gap:0.5rem;color:rgba(255,255,255,0.4);font-size:0.875rem;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.4)'">
+  <a href="<?= BASE ?>/" style="position:absolute;top:1.5rem;left:1.5rem;display:flex;align-items:center;gap:0.5rem;color:rgba(255,255,255,0.4);font-size:0.875rem;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.4)'">
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
     Back to Home
   </a>
 
   <div class="login-card" style="width:100%;max-width:24rem;">
     <div style="text-align:center;margin-bottom:1.75rem;">
-      <a href="/" style="display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;margin-bottom:1rem;">
+      <a href="<?= BASE ?>/" style="display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;margin-bottom:1rem;">
         <div style="width:3rem;height:3rem;border-radius:0.75rem;overflow:hidden;"><img src="<?= BASE ?>/public/logo.png" alt="Lotoks" style="width:100%;height:100%;object-fit:contain;" /></div>
         <span style="font-family:var(--font-heading);font-size:1.5rem;font-weight:700;color:#fff;">Lotoks<span style="color:var(--color-gold);">.</span></span>
       </a>

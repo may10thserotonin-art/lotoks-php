@@ -1,10 +1,11 @@
-﻿<?php
+<?php
 /**
  * Lotoks — Eligibility Check (eligibility.php)
  * Converted from pages/Eligibility.tsx
  * Pure client-side interactive quiz — no PHP state needed.
  */
 require_once __DIR__ . '/includes/auth.php';
+redirect_if_logged_in();
 
 $is_logged_in = is_user_logged_in();
 
@@ -163,7 +164,7 @@ require_once __DIR__ . '/includes/navbar.php';
   <div style="max-width:48rem;margin-inline:auto;position:relative;z-index:10;">
 
     <!-- Back link -->
-    <a href="/" style="display:inline-flex;align-items:center;gap:0.5rem;font-size:0.875rem;font-weight:700;color:var(--color-outline-variant);text-decoration:none;margin-bottom:2rem;transition:color 0.2s;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-outline-variant)'">
+    <a href="<?= BASE ?>/" style="display:inline-flex;align-items:center;gap:0.5rem;font-size:0.875rem;font-weight:700;color:var(--color-outline-variant);text-decoration:none;margin-bottom:2rem;transition:color 0.2s;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-outline-variant)'">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
       Back to Home
     </a>
@@ -421,13 +422,13 @@ require_once __DIR__ . '/includes/navbar.php';
 
     const type = selectedGoal || 'visa';
     const catParam = (selectedGoal === 'job' && answers[2]) ? `&category=${answers[2]}` : '';
-    const applyUrl = `/apply.php?type=${type}${catParam}`;
+    const applyUrl = `<?= BASE ?>/apply.php?type=${type}${catParam}`;
 
     const applyBtn = document.getElementById('apply-btn');
     if (IS_LOGGED_IN) {
       applyBtn.href = applyUrl;
     } else {
-      applyBtn.href = `/login.php?redirect=${encodeURIComponent(applyUrl)}`;
+      applyBtn.href = `<?= BASE ?>/login.php?redirect=${encodeURIComponent(applyUrl)}`;
     }
   }
 

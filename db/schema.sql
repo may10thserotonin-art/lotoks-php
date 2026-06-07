@@ -6,6 +6,7 @@
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Drop existing tables (for fresh install)
+DROP TABLE IF EXISTS activity_log;
 DROP TABLE IF EXISTS requirements;
 DROP TABLE IF EXISTS languages;
 DROP TABLE IF EXISTS config;
@@ -30,6 +31,19 @@ CREATE TABLE admins (
   reset_token          VARCHAR(255) DEFAULT NULL,
   reset_token_expires  DATETIME DEFAULT NULL,
   created_at           DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ── activity_log ──────────────────────────────────────────────────
+CREATE TABLE activity_log (
+  id               INT AUTO_INCREMENT PRIMARY KEY,
+  user_id          INT DEFAULT NULL,
+  admin_id         INT DEFAULT NULL,
+  action           VARCHAR(100) NOT NULL DEFAULT '',
+  description      TEXT DEFAULT NULL,
+  ip_address       VARCHAR(45) DEFAULT NULL,
+  created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL
 );
 
 -- ── users ───────────────────────────────────────────────────────
@@ -58,10 +72,16 @@ CREATE TABLE applications (
   documents        JSON DEFAULT (JSON_ARRAY()),
   personal_info    JSON DEFAULT (JSON_OBJECT()),
   answers          JSON DEFAULT (JSON_OBJECT()),
+  requirements     JSON DEFAULT (JSON_ARRAY()),
   job_category     VARCHAR(255) DEFAULT '',
   note             TEXT DEFAULT NULL,
   created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  updated_at       DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  admin_notes      TEXT DEFAULT NULL,
+  reviewed_by      INT DEFAULT NULL,
+  reviewed_at      TIMESTAMP DEFAULT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (reviewed_by) REFERENCES admins(id) ON DELETE SET NULL
 );
 
 -- ── user_documents ───────────────────────────────────────────────
@@ -92,7 +112,8 @@ CREATE TABLE listings (
   active           TINYINT(1) NOT NULL DEFAULT 1,
   applicants       INT NOT NULL DEFAULT 0,
   type             VARCHAR(50) DEFAULT 'job',
-  created_at       DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+  deleted_at       DATETIME DEFAULT NULL
 );
 
 -- ── payments ─────────────────────────────────────────────────────
@@ -165,39 +186,40 @@ VALUES ('en', JSON_OBJECT(
 ));
 
 -- Default document requirements per service type
+-- Items are JSON objects with: name, desc, required, accept
 INSERT INTO requirements (service_type, categories) VALUES
 ('visa', JSON_ARRAY(
   JSON_OBJECT('name', 'Core Documents', 'items', JSON_ARRAY(
-    'International Passport (Biodata Page)',
-    'Passport-Sized Photograph (white background)',
-    'Bank Statements (last 3-6 months)',
-    'Travel Itinerary / Invitation Letter'
+    JSON_OBJECT('name', 'International Passport (Biodata Page)', 'desc', 'Scanned copy of your passport biodata page',                         'required', true,  'accept', '.pdf,.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'Passport-Sized Photograph (white background)', 'desc', 'Recent passport-sized photograph on white background',          'required', true,  'accept', '.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'Bank Statements (last 3-6 months)', 'desc', 'Official bank statements showing sufficient funds',                      'required', true,  'accept', '.pdf,.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'Travel Itinerary / Invitation Letter', 'desc', 'Flight booking, travel plan, or host invitation letter',               'required', false, 'accept', '.pdf,.jpg,.jpeg,.png')
   ))
 )),
 ('job', JSON_ARRAY(
   JSON_OBJECT('name', 'Core Documents', 'items', JSON_ARRAY(
-    'International Passport (Biodata Page)',
-    'Passport-Sized Photograph',
-    'CV / Resume (Updated)',
-    'Professional Certifications',
-    'Reference Letters'
+    JSON_OBJECT('name', 'International Passport (Biodata Page)', 'desc', 'Scanned copy of your passport biodata page',                         'required', true,  'accept', '.pdf,.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'Passport-Sized Photograph', 'desc', 'Recent passport-sized photograph (white background)',                            'required', true,  'accept', '.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'CV / Resume (Updated)', 'desc', 'Your updated curriculum vitae or resume',                                           'required', true,  'accept', '.pdf,.doc,.docx'),
+    JSON_OBJECT('name', 'Professional Certifications', 'desc', 'Copies of relevant certifications and licenses',                              'required', false, 'accept', '.pdf,.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'Reference Letters', 'desc', 'Professional reference letters from previous employers',                               'required', false, 'accept', '.pdf,.doc,.docx')
   ))
 )),
 ('edu', JSON_ARRAY(
   JSON_OBJECT('name', 'Core Documents', 'items', JSON_ARRAY(
-    'International Passport (Biodata Page)',
-    'Academic Transcripts',
-    'Recommendation Letters (minimum 2)',
-    'CV / Resume',
-    'English Proficiency Test Score (IELTS/TOEFL)'
+    JSON_OBJECT('name', 'International Passport (Biodata Page)', 'desc', 'Scanned copy of your passport biodata page',                         'required', true,  'accept', '.pdf,.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'Academic Transcripts', 'desc', 'Official transcripts from your previous institution',                                'required', true,  'accept', '.pdf,.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'Recommendation Letters (minimum 2)', 'desc', 'Academic recommendation letters (minimum 2)',                           'required', true,  'accept', '.pdf,.doc,.docx'),
+    JSON_OBJECT('name', 'CV / Resume', 'desc', 'Your academic curriculum vitae',                                                              'required', true,  'accept', '.pdf,.doc,.docx'),
+    JSON_OBJECT('name', 'English Proficiency Test Score (IELTS/TOEFL)', 'desc', 'IELTS, TOEFL, or PTE score report',                           'required', false, 'accept', '.pdf,.jpg,.jpeg,.png')
   ))
 )),
 ('pr', JSON_ARRAY(
   JSON_OBJECT('name', 'Core Documents', 'items', JSON_ARRAY(
-    'International Passport (Biodata Page)',
-    'Birth Certificate',
-    'Police Clearance Certificate',
-    'Medical Examination Report',
-    'Marriage Certificate (if applicable)'
+    JSON_OBJECT('name', 'International Passport (Biodata Page)', 'desc', 'Scanned copy of your passport biodata page',                         'required', true,  'accept', '.pdf,.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'Birth Certificate', 'desc', 'Official birth certificate',                                                            'required', true,  'accept', '.pdf,.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'Police Clearance Certificate', 'desc', 'Police clearance from your country of residence',                            'required', true,  'accept', '.pdf,.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'Medical Examination Report', 'desc', 'Medical report from an approved physician',                                   'required', true,  'accept', '.pdf,.jpg,.jpeg,.png'),
+    JSON_OBJECT('name', 'Marriage Certificate (if applicable)', 'desc', 'If applicable',                                                       'required', false, 'accept', '.pdf,.jpg,.jpeg,.png')
   ))
 ));

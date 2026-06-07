@@ -1,30 +1,29 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/db/connect.php';
 requireUserAuth('/login.php');
 
 $current_page = 'dashboard';
 $user = getCurrentUser();
 
-// Fetch dashboard stats from API
-$stats = null;
-try {
-    $ch = curl_init(rtrim(getenv('API_BASE_URL') ?: 'http://localhost:3001/api', '/') . '/user/stats');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER     => ['Cookie: ' . http_build_cookie()],
-        CURLOPT_TIMEOUT        => 5,
-    ]);
-    $body = curl_exec($ch);
-    if (!curl_errno($ch)) {
-        $stats = json_decode($body, true);
-    }
-    curl_close($ch);
-} catch (Throwable $e) { /* non-fatal */ }
+// Fetch dashboard stats from local database
+$db = getDb();
+$userId = (int)($user['id'] ?? 0);
 
-$applications  = $stats['applications']  ?? null;
-$documents     = $stats['documents']     ?? null;
-$opportunities = $stats['opportunities'] ?? null;
-$recentApp     = $stats['recentApplication'] ?? null;
+$applications  = $db->prepare("SELECT COUNT(*) FROM applications WHERE user_id = ?");
+$applications->execute([$userId]);
+$applications = (int)$applications->fetchColumn();
+
+$documents  = $db->prepare("SELECT COUNT(*) FROM user_documents WHERE user_id = ?");
+$documents->execute([$userId]);
+$documents = (int)$documents->fetchColumn();
+
+$opportunities = $db->query("SELECT COUNT(*) FROM listings WHERE active = 1")->fetchColumn();
+$opportunities = (int)$opportunities;
+
+$recentApp = $db->prepare("SELECT id, sponsorship_type, status, created_at FROM applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
+$recentApp->execute([$userId]);
+$recentApp = $recentApp->fetch() ?: null;
 
 $page_title       = 'Dashboard — Lotoks';
 $page_description = 'Your Lotoks dashboard. Track applications, manage documents, and explore opportunities.';
@@ -38,10 +37,19 @@ include __DIR__ . '/includes/head.php';
 
 <div class="portal-wrap">
     <?php include __DIR__ . '/includes/sidebar.php'; ?>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
     <main class="portal-main">
         <!-- Top Bar -->
         <header class="portal-topbar">
+            <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Open navigation menu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="7" x2="21" y2="7"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="17" x2="21" y2="17"/>
+                </svg>
+            </button>
+            <a href="<?= BASE ?>/index.php" class="topbar-brand">Lotoks<span>.</span></a>
             <div>
                 <h1>Dashboard</h1>
                 <p>Welcome back, <?= htmlspecialchars($user['name'] ?? 'User') ?></p>
@@ -169,15 +177,8 @@ include __DIR__ . '/includes/head.php';
                 <?php endif; ?>
             </div>
 
-            <?php if ($recentApp): ?>
-            <div class="dash-activity fade-up">
-                <div>
-                    <p class="app-title"><?= htmlspecialchars(ucwords(str_replace('_', ' ', $recentApp['sponsorship_type'] ?? ''))) ?> Application</p>
-                    <p class="app-date">
-                        <?= !empty($recentApp['created_at']) ? date('M j, Y', strtotime($recentApp['created_at'])) : '' ?>
-                    </p>
-                </div>
-                <?php
+            <?php if ($recentApp):
+                $appId = (int)$recentApp['id'];
                 $status = $recentApp['status'] ?? 'pending';
                 $badgeClass = match($status) {
                     'submitted'    => 'badge-submitted',
@@ -186,9 +187,19 @@ include __DIR__ . '/includes/head.php';
                     'under_review' => 'badge-under_review',
                     default        => 'badge-pending',
                 };
-                ?>
-                <span class="badge <?= $badgeClass ?>"><?= htmlspecialchars(str_replace('_', ' ', $status)) ?></span>
-            </div>
+            ?>
+            <a href="<?= BASE ?>/application-detail.php?id=<?= $appId ?>" class="dash-activity fade-up" style="text-decoration:none;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.25rem;border-radius:0.75rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">
+                <div>
+                    <p class="app-title" style="color:#fff;font-weight:600;font-size:0.9rem;margin-bottom:0.15rem"><?= htmlspecialchars(ucwords(str_replace('_', ' ', $recentApp['sponsorship_type'] ?? ''))) ?> Application</p>
+                    <p class="app-date" style="color:rgba(255,255,255,.4);font-size:0.75rem">
+                        <?= !empty($recentApp['created_at']) ? date('M j, Y', strtotime($recentApp['created_at'])) : '' ?>
+                    </p>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.75rem">
+                    <span class="badge <?= $badgeClass ?>"><?= htmlspecialchars(str_replace('_', ' ', $status)) ?></span>
+                    <svg width="14" height="14" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </div>
+            </a>
             <?php else: ?>
             <div class="dash-empty fade-up">
                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -228,6 +239,58 @@ document.addEventListener('DOMContentLoaded', function() {
             content.style.transform = 'translateY(0)';
         });
     }
+
+    // Sidebar Toggle Logic (uses .portal-sidebar added by sidebar.php)
+    const toggle  = document.getElementById('sidebar-toggle');
+    const sidebar = document.querySelector('.portal-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    function openSidebar() {
+      if(sidebar) sidebar.classList.add('is-open');
+      if(overlay) overlay.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+      if(sidebar) sidebar.classList.remove('is-open');
+      if(overlay) overlay.classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
+    if(toggle) toggle.addEventListener('click', openSidebar);
+    if(overlay) overlay.addEventListener('click', closeSidebar);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeSidebar();
+    });
+
+    // ── Notification Bell ──
+    const bellBtn = document.querySelector('.bell-btn');
+    if (bellBtn) {
+      bellBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        window.location.href = BASE + '/notifications.php';
+      });
+    }
+
+    // ── Unread Notification Count ──
+    (function fetchUnreadCount() {
+      const dot = document.querySelector('.bell-dot');
+      if (!dot) return;
+
+      const apiUrl = (window.LOTOKS_CONFIG?.API_BASE || BASE + '/api') + '/user/notifications.php?action=get_unread_count';
+
+      fetch(apiUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success && data.count > 0) {
+            dot.style.display = '';
+          } else {
+            dot.style.display = 'none';
+          }
+        })
+        .catch(function () { /* silently ignore */ });
+    })();
 });
 </script>
 </body>

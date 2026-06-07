@@ -27,9 +27,62 @@ require_once __DIR__ . '/config.php';
 <script>
   window.LOTOKS_CONFIG = {
     BASE: '<?= BASE ?>',
-    API_BASE: 'http://localhost:3001/api'
+    API_BASE: '<?= BASE ?>/api'
   };
 </script>
 
 <!-- Main JS -->
 <script src="<?= BASE ?>/assets/js/main.js"></script>
+
+<!-- Dashboard Sidebar Toggle -->
+<script>
+(function () {
+  const toggle  = document.getElementById('sidebar-toggle');
+  const sidebar = document.querySelector('.portal-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+
+  function openSidebar() {
+    if(sidebar) sidebar.classList.add('is-open');
+    if(overlay) overlay.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSidebar() {
+    if(sidebar) sidebar.classList.remove('is-open');
+    if(overlay) overlay.classList.remove('is-open');
+    document.body.style.overflow = '';
+  }
+
+  if(toggle) toggle.addEventListener('click', openSidebar);
+  if(overlay) overlay.addEventListener('click', closeSidebar);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSidebar();
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   Notification unread count — updates sidebar + tab badges
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+  var config = window.LOTOKS_CONFIG || {};
+  var apiUrl = (config.API_BASE || config.BASE + '/api') + '/user/notifications.php?action=get_unread_count';
+
+  fetch(apiUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success) return;
+      var count = data.count;
+      var badges = document.querySelectorAll('.notif-badge');
+      for (var i = 0; i < badges.length; i++) {
+        if (count > 0) {
+          badges[i].textContent = count > 99 ? '99+' : count;
+          badges[i].style.display = 'inline-flex';
+        } else {
+          badges[i].style.display = 'none';
+        }
+      }
+    })
+    .catch(function () { /* silently ignore */ });
+})();
+</script>

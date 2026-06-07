@@ -1,0 +1,23 @@
+# ─────────────────────────────────────────────────────
+# Lotoks — Robots Exclusion File
+# ─────────────────────────────────────────────────────
+
+# Allow all bots to crawl the full site
+User-agent: *
+Allow: /
+
+# Block crawling of admin, API, and system paths
+Disallow: /admin/
+Disallow: /api/
+Disallow: /includes/
+Disallow: /db/
+Disallow: /migrations/
+Disallow: /uploads/
+Disallow: /logs/
+Disallow: /vendor/
+
+# Sitemap location
+Sitemap: https://www.lotoks.co.za/sitemap.php
+
+# Crawl delay (be polite)
+Crawl-Delay: 10

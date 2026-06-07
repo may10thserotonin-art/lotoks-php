@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Lotoks — Reset Password (reset-password.php)
  * Converted from pages/ResetPassword.tsx
@@ -7,10 +7,7 @@
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/db/connect.php';
 
-// Already logged in → redirect
-if (is_user_logged_in()) {
-    redirect('/dashboard.php');
-}
+redirect_if_logged_in();
 
 $token = trim($_GET['token'] ?? $_POST['token'] ?? '');
 
@@ -91,8 +88,8 @@ require_once __DIR__ . '/includes/head.php';
   position: absolute;
   top: -10rem;
   left: -10rem;
-  width: 30rem;
-  height: 30rem;
+  width: min(30rem, 75vw);
+  height: min(30rem, 75vw);
   background: rgba(201,164,75,0.06);
   border-radius: 50%;
   filter: blur(60px);
@@ -104,8 +101,8 @@ require_once __DIR__ . '/includes/head.php';
   position: absolute;
   bottom: -10rem;
   right: -10rem;
-  width: 30rem;
-  height: 30rem;
+  width: min(30rem, 75vw);
+  height: min(30rem, 75vw);
   background: rgba(35,73,225,0.06);
   border-radius: 50%;
   filter: blur(60px);
@@ -136,7 +133,7 @@ require_once __DIR__ . '/includes/head.php';
   <div class="login-card" style="width:100%;max-width:22rem;position:relative;">
     <!-- Logo -->
     <div style="text-align:center;margin-bottom:2rem;">
-      <a href="/" style="display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;">
+      <a href="<?= BASE ?>/" style="display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;">
         <div style="width:3rem;height:3rem;border-radius:0.75rem;overflow:hidden;">
           <img src="<?= BASE ?>/public/logo.png" alt="Lotoks" style="width:100%;height:100%;object-fit:contain;" />
         </div>
@@ -168,7 +165,7 @@ require_once __DIR__ . '/includes/head.php';
       </div>
       <script>
         setTimeout(() => {
-          window.location.href = '/login.php';
+          window.location.href = '<?= BASE ?>/login.php';
         }, 2000);
       </script>
     <?php endif; ?>
@@ -259,8 +256,8 @@ require_once __DIR__ . '/includes/head.php';
 
   <!-- Mini footer -->
   <div style="margin-top:2rem;display:flex;align-items:center;gap:1.5rem;">
-    <a href="/privacy.php"  style="color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Privacy</a>
-    <a href="/terms.php"    style="color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Terms</a>
+    <a href="<?= BASE ?>/privacy.php"  style="color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Privacy</a>
+    <a href="<?= BASE ?>/terms.php"    style="color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Terms</a>
     <a href="<?= BASE ?>/contact.php"  style="color:rgba(255,255,255,0.3);font-size:0.8rem;text-decoration:none;" onmouseover="this.style.color='var(--color-gold)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Contact</a>
   </div>
 </div>

@@ -1,9 +1,10 @@
-﻿<?php
+<?php
 /**
  * Lotoks — Our Services (services.php)
  * Converted from pages/Services.tsx
  */
 require_once __DIR__ . '/includes/auth.php';
+redirect_if_logged_in();
 
 $page_title       = 'Our Services | Lotoks';
 $page_description = 'Comprehensive solutions for all your global mobility needs. Visa sponsorships, scholarships, work placement contracts, and permanent residency programs.';
@@ -170,7 +171,7 @@ $active_tab = 'visa';
           </div>
 
           <!-- Two Column layout: Benefits vs How It Works -->
-          <div style="display:grid; grid-template-columns:1fr; gap:3rem;" class="service-details-grid">
+          <div style="display:grid; gap:3rem;" class="service-details-grid">
             
             <!-- Left Column: Benefits -->
             <div>
@@ -222,7 +223,7 @@ $active_tab = 'visa';
                 Available Job Categories
               </h3>
               
-              <div style="display:grid; grid-template-columns:1fr; gap:1.5rem;" class="jobs-categories-grid">
+              <div style="display:grid; gap:1.5rem;" class="jobs-categories-grid">
                 <?php
                 $jobListings = [
                   ["title" => "Nurse",                    "icon" => "stethoscope", "image" => "./public/images/jobs/nurse.jpg",           "desc" => "ICU, ward & community nursing roles with full sponsorship", "tag" => "Healthcare"],
@@ -240,7 +241,7 @@ $active_tab = 'visa';
                   ["title" => "Finance & Accounting",     "icon" => "coins",       "image" => "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80", "desc" => "Accounting, audit, banking and financial analyst roles", "tag" => "Finance"]
                 ];
                 foreach ($jobListings as $jobIdx => $job): ?>
-                  <div class="job-category-card" onclick="window.location.href='/eligibility.php'">
+                  <div class="job-category-card" onclick="window.location.href='<?= BASE ?>/eligibility.php'">
                     <!-- Job Card Background image -->
                     <div class="job-card-image" style="background-image:url('<?= $job['image'] ?>');" onerror="this.style.background='#0B1D3A'"></div>
                     <!-- Overlay -->
@@ -296,8 +297,8 @@ $active_tab = 'visa';
      ════════════════════════════════════════════════════════════ -->
 <section class="section-wrapper bg-navy" style="position:relative; overflow:hidden;">
   <div style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; opacity:0.15;">
-    <div style="position:absolute; top:4rem; left:4rem; width:24rem; height:24rem; background:var(--color-gold); border-radius:50%; filter:blur(70px);"></div>
-    <div style="position:absolute; bottom:4rem; right:4rem; width:24rem; height:24rem; background:var(--color-teal); border-radius:50%; filter:blur(70px);"></div>
+    <div style="position:absolute; top:4rem; left:4rem; width:min(24rem,60vw); height:min(24rem,60vw); background:var(--color-gold); border-radius:50%; filter:blur(70px);"></div>
+    <div style="position:absolute; bottom:4rem; right:4rem; width:min(24rem,60vw); height:min(24rem,60vw); background:var(--color-teal); border-radius:50%; filter:blur(70px);"></div>
   </div>
 
   <div class="container" style="position:relative; z-index:10;">
@@ -306,7 +307,7 @@ $active_tab = 'visa';
       <p>Workforce strategies designed to scale with your growth, drive efficiency, and elevate performance.</p>
     </div>
 
-    <div style="display:grid; grid-template-columns:1fr; gap:2rem; margin-top:4rem;" class="enterprise-grid">
+    <div style="display:grid; gap:2rem; margin-top:4rem;" class="enterprise-grid">
       <?php
       $enterprise = [
         [
@@ -404,7 +405,7 @@ $active_tab = 'visa';
      ════════════════════════════════════════════════════════════ -->
 <section style="padding-block:5rem; background:rgba(11,29,58,0.02); border-bottom:1px solid rgba(11,29,58,0.05);">
   <div class="container">
-    <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:2rem;" class="stats-grid-services">
+    <div style="display:grid; gap:2rem;" class="stats-grid-services">
       <?php
       $stats = [
         ["count" => 50000, "suffix" => "+", "label" => "Applications Processed", "icon" => '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>'],
@@ -579,14 +580,14 @@ $active_tab = 'visa';
 /* Split layout responsive */
 .service-details-grid { grid-template-columns: 1fr; }
 @media (min-width: 992px) {
-  .service-details-grid { grid-template-columns: 1fr 1fr !important; }
+  .service-details-grid { grid-template-columns: 1fr 1fr; }
 }
 
 /* Available Jobs Listings Grid */
 .jobs-categories-grid { grid-template-columns: 1fr; }
-@media (min-width: 576px)  { .jobs-categories-grid { grid-template-columns: repeat(2, 1fr) !important; } }
-@media (min-width: 992px)  { .jobs-categories-grid { grid-template-columns: repeat(3, 1fr) !important; } }
-@media (min-width: 1200px) { .jobs-categories-grid { grid-template-columns: repeat(4, 1fr) !important; } }
+@media (min-width: 576px)  { .jobs-categories-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 992px)  { .jobs-categories-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1200px) { .jobs-categories-grid { grid-template-columns: repeat(4, 1fr); } }
 
 /* Job Listing Card */
 .job-category-card {
@@ -705,7 +706,7 @@ $active_tab = 'visa';
 /* Enterprise talent solutions grid */
 .enterprise-grid { grid-template-columns: 1fr; }
 @media (min-width: 992px) {
-  .enterprise-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .enterprise-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
 /* Enterprise card component */
@@ -742,7 +743,7 @@ $active_tab = 'visa';
 /* Stats responsive grid */
 .stats-grid-services { grid-template-columns: repeat(2, 1fr); }
 @media (min-width: 768px) {
-  .stats-grid-services { grid-template-columns: repeat(4, 1fr) !important; }
+  .stats-grid-services { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* FAQ item states */
@@ -755,7 +756,7 @@ $active_tab = 'visa';
 /* CTA buttons layout */
 .cta-btns { flex-direction: column; }
 @media (min-width: 576px) {
-  .cta-btns { flex-direction: row !important; }
+  .cta-btns { flex-direction: row; }
 }
 </style>
 

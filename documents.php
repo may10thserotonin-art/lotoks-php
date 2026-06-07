@@ -1,34 +1,21 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/db/connect.php';
 requireUserAuth('/login.php');
 
 $current_page = 'documents';
 $user = getCurrentUser();
 
-// Fetch documents from API
+// Fetch documents from local database
 $docs = [];
 $apiError = '';
 try {
-    $ch = curl_init(rtrim(getenv('API_BASE_URL') ?: 'http://localhost:3001/api', '/') . '/user/documents');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER     => ['Cookie: ' . http_build_cookie()],
-        CURLOPT_TIMEOUT        => 5,
-    ]);
-    $body = curl_exec($ch);
-    if (!curl_errno($ch)) {
-        $data = json_decode($body, true);
-        $docs = $data['documents'] ?? [];
-    }
-    curl_close($ch);
+    $db = getDb();
+    $userId = (int)($user['id'] ?? 0);
+    $docs = $db->prepare("SELECT id, name, filename, filesize, mime_type, category, verified, created_at FROM user_documents WHERE user_id = ? ORDER BY created_at DESC");
+    $docs->execute([$userId]);
+    $docs = $docs->fetchAll();
 } catch (Throwable $e) { $apiError = 'Could not load documents.'; }
-
-function formatFileSize(int $bytes): string {
-    if ($bytes === 0) return '0 B';
-    $units = ['B','KB','MB','GB'];
-    $i = (int)floor(log($bytes, 1024));
-    return round($bytes / (1024 ** $i), 1) . ' ' . $units[$i];
-}
 
 $page_title       = 'My Documents — Lotoks';
 $page_description = 'Upload and manage your sponsorship files and certificates on Lotoks.';
@@ -40,8 +27,22 @@ $page_description = 'Upload and manage your sponsorship files and certificates o
 
 <div class="portal-wrap">
     <?php include __DIR__ . '/includes/sidebar.php'; ?>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
     <main class="portal-main">
+        <!-- Mobile topbar -->
+        <header class="portal-topbar">
+            <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Open navigation menu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="7" x2="21" y2="7"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="17" x2="21" y2="17"/>
+                </svg>
+            </button>
+            <a href="<?= BASE ?>/index.php" class="topbar-brand">Lotoks<span>.</span></a>
+            <div><h1 style="font-size:1rem;color:#fff;font-weight:700;margin:0;">My Documents</h1></div>
+            <div></div>
+        </header>
         <div class="portal-content" style="padding-top:2rem">
 
             <!-- Header -->
@@ -184,10 +185,11 @@ async function handleFileUpload(input) {
 async function deleteDoc(id) {
     if (!confirm('Delete this document?')) return;
     try {
-        const res = await fetch((window.LOTOKS_CONFIG?.API_BASE || '/api') + `/user/documents/${id}`, {
-            method: 'DELETE',
+        const res = await fetch((window.LOTOKS_CONFIG?.API_BASE || '/api') + '/user/documents/delete.php', {
+            method: 'POST',
             credentials: 'include',
-            headers: { 'X-CSRF-Token': CSRF_TOKEN }
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+            body: JSON.stringify({ id })
         });
         if (res.ok) {
             const el = document.getElementById('doc-' + id);

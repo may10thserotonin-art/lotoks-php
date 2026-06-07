@@ -1,25 +1,27 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/db/connect.php';
 requireUserAuth('/login.php');
 
 $current_page = 'opportunities';
 $user = getCurrentUser();
 
-// Fetch public listings from API
+// Fetch public listings from local database
 $listings = [];
 try {
-    $ch = curl_init(rtrim(getenv('API_BASE_URL') ?: 'http://localhost:3001/api', '/') . '/listings/public');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 5,
-    ]);
-    $body = curl_exec($ch);
-    if (!curl_errno($ch)) {
-        $data = json_decode($body, true);
-        $listings = $data['listings'] ?? [];
-    }
-    curl_close($ch);
+    $db = getDb();
+    $listings = $db->query("SELECT id, title, employer, country, sponsorship_type, salary_range as salary, type, created_at FROM listings WHERE active = 1 ORDER BY created_at DESC")->fetchAll();
 } catch (Throwable $e) {}
+
+// Build unique country list from listings for the dropdown
+$uniqueCountries = [];
+foreach ($listings as $item) {
+    $c = trim($item['country'] ?? '');
+    if ($c !== '' && !in_array($c, $uniqueCountries, true)) {
+        $uniqueCountries[] = $c;
+    }
+}
+sort($uniqueCountries);
 
 $page_title       = 'Opportunities — Lotoks';
 $page_description = 'Browse job sponsorship, visa, and education opportunities on Lotoks.';
@@ -31,8 +33,22 @@ $page_description = 'Browse job sponsorship, visa, and education opportunities o
 
 <div style="min-height:100vh;background:var(--color-surface)">
     <?php include __DIR__ . '/includes/sidebar.php'; ?>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
     <main class="portal-main" style="background:var(--color-surface)">
+        <!-- Mobile topbar -->
+        <header class="portal-topbar">
+            <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Open navigation menu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="7" x2="21" y2="7"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="17" x2="21" y2="17"/>
+                </svg>
+            </button>
+            <a href="<?= BASE ?>/index.php" class="topbar-brand">Lotoks<span>.</span></a>
+            <div><h1 style="font-size:1rem;color:var(--color-navy);font-weight:700;margin:0;">Opportunities</h1></div>
+            <div></div>
+        </header>
         <!-- Header / Search Section -->
         <section class="opportunities-header">
             <h2>Global <span>Opportunities.</span></h2>
@@ -42,12 +58,18 @@ $page_description = 'Browse job sponsorship, visa, and education opportunities o
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" id="search-input" class="opp-search-input" placeholder="Search position, employer, or country..." oninput="filterListings()">
                 </div>
-                <div style="display:flex;gap:1rem">
-                    <button style="display:flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:.75rem;background:#fff;font-weight:700;font-size:.75rem;border:none;cursor:pointer;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-primary)"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        All Countries
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><polyline points="6 9 12 15 18 9"/></svg>
+                <div style="display:flex;gap:1rem;position:relative">
+                    <button id="country-btn" onclick="toggleCountryDropdown(event)" style="display:flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:.75rem;background:#fff;font-weight:700;font-size:.75rem;border:none;cursor:pointer;white-space:nowrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-primary);flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span id="country-label">All Countries</span>
+                        <svg id="country-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5;transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
+                    <div id="country-dropdown" style="display:none;position:absolute;top:calc(100% + .5rem);left:0;z-index:50;min-width:200px;max-height:260px;overflow-y:auto;background:#fff;border-radius:.75rem;box-shadow:0 8px 32px rgba(0,0,0,.12);padding:.5rem" data-dropdown>
+                        <div style="padding:.5rem .75rem;border-radius:.5rem;cursor:pointer;font-size:.8125rem;font-weight:600;transition:background .15s" data-country="" class="country-option">All Countries</div>
+                        <?php foreach ($uniqueCountries as $c): ?>
+                        <div style="padding:.5rem .75rem;border-radius:.5rem;cursor:pointer;font-size:.8125rem;font-weight:500;transition:background .15s" data-country="<?= htmlspecialchars($c, ENT_QUOTES) ?>" class="country-option"><?= htmlspecialchars($c) ?></div>
+                        <?php endforeach; ?>
+                    </div>
                     <button onclick="filterListings()" style="display:flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:.75rem;background:var(--color-primary);color:#fff;font-weight:700;font-size:.75rem;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(35,73,225,.25)">
                         Find Sponsorship
                     </button>
@@ -136,11 +158,38 @@ $page_description = 'Browse job sponsorship, visa, and education opportunities o
 <?php include __DIR__ . '/includes/scripts.php'; ?>
 <script>
 let currentFilter = 'all';
+let currentCountry = '';
 
 function setFilter(filter, btn) {
     currentFilter = filter;
     document.querySelectorAll('.opp-filter-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    filterListings();
+}
+
+function toggleCountryDropdown(e) {
+    e.stopPropagation();
+    const dd = document.getElementById('country-dropdown');
+    const ch = document.getElementById('country-chevron');
+    const isOpen = dd.style.display !== 'none';
+    dd.style.display = isOpen ? 'none' : 'block';
+    if (ch) ch.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+function selectCountry(country) {
+    currentCountry = country;
+    const label = document.getElementById('country-label');
+    label.textContent = country || 'All Countries';
+    document.getElementById('country-dropdown').style.display = 'none';
+    const ch = document.getElementById('country-chevron');
+    if (ch) ch.style.transform = 'rotate(0deg)';
+
+    // Highlight selected option
+    document.querySelectorAll('.country-option').forEach(el => {
+        el.style.background = el.dataset.country === country ? 'rgba(35,73,225,.08)' : '';
+        el.style.fontWeight = el.dataset.country === country ? '700' : '';
+    });
+
     filterListings();
 }
 
@@ -155,10 +204,11 @@ function filterListings() {
         const employer= card.dataset.employer|| '';
         const country = card.dataset.country || '';
 
-        const matchFilter = (currentFilter === 'all') || (type === currentFilter);
-        const matchSearch = !query || title.includes(query) || employer.includes(query) || country.includes(query);
+        const matchFilter  = (currentFilter === 'all') || (type === currentFilter);
+        const matchCountry = !currentCountry || (country === currentCountry.toLowerCase());
+        const matchSearch  = !query || title.includes(query) || employer.includes(query) || country.includes(query);
 
-        if (matchFilter && matchSearch) {
+        if (matchFilter && matchCountry && matchSearch) {
             card.style.display = '';
             visibleCount++;
         } else {
@@ -169,6 +219,24 @@ function filterListings() {
     const emptyEl = document.getElementById('listings-empty');
     if (emptyEl) emptyEl.style.display = (visibleCount === 0 && cards.length > 0) ? 'flex' : 'none';
 }
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function (e) {
+    var dd = document.getElementById('country-dropdown');
+    var btn = document.getElementById('country-btn');
+    if (dd && btn && !btn.contains(e.target) && !dd.contains(e.target)) {
+        dd.style.display = 'none';
+        var ch = document.getElementById('country-chevron');
+        if (ch) ch.style.transform = 'rotate(0deg)';
+    }
+});
+
+// Country dropdown click delegation
+document.getElementById('country-dropdown').addEventListener('click', function (e) {
+    var opt = e.target.closest('.country-option');
+    if (!opt) return;
+    selectCountry(opt.dataset.country || '');
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     const BASE = window.LOTOKS_CONFIG?.BASE || '';

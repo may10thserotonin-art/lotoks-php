@@ -15,8 +15,22 @@ $page_description = 'Start a new visa, job, education, or permanent residency ap
 
 <div class="portal-wrap">
     <?php include __DIR__ . '/includes/sidebar.php'; ?>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
     <main class="portal-main">
+        <!-- Mobile topbar -->
+        <header class="portal-topbar">
+            <button class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Open navigation menu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="7" x2="21" y2="7"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="17" x2="21" y2="17"/>
+                </svg>
+            </button>
+            <a href="<?= BASE ?>/index.php" class="topbar-brand">Lotoks<span>.</span></a>
+            <div><h1 style="font-size:1rem;color:#fff;font-weight:700;margin:0;">Apply</h1></div>
+            <div></div>
+        </header>
         <div class="portal-content" style="padding-top:1.5rem;padding-bottom:6rem" id="apply-wrap">
             <!-- Header -->
             <header style="margin-bottom:2rem" id="apply-header">
@@ -71,7 +85,7 @@ $page_description = 'Start a new visa, job, education, or permanent residency ap
                     <a id="link-opportunities" href="#" style="padding:.75rem 2rem;border-radius:9999px;border:1px solid rgba(255,255,255,.2);color:#fff;font-weight:700">Browse Opportunities</a>
                 </div>
             </div>
-        </div>
+        </div><!-- /portal-content -->
     </main>
 </div>
 
@@ -81,6 +95,9 @@ $page_description = 'Start a new visa, job, education, or permanent residency ap
 const CSRF = '<?= htmlspecialchars(generateCsrfToken()) ?>';
 const USER_NAME    = <?= json_encode($user['name']    ?? '') ?>;
 const USER_COUNTRY = <?= json_encode($user['country'] ?? '') ?>;
+
+// Country list for dropdowns — injected from PHP
+const COUNTRIES = <?= json_encode(array_values(countryList())) ?>;
 
 const SPONSORSHIP_TYPES = [
     { id: 'visa', label: 'Visa Sponsorship',      desc: 'Work, tourist, or family visas',            icon: 'globe' },
@@ -127,35 +144,8 @@ const INTERVIEW_QUESTIONS = [
       options:[{l:'Yes, I have an offer',v:'yes'},{l:'I am actively looking',v:'looking'},{l:'Not yet',v:'no'}] },
 ];
 
-const CORE_DOCS = [
-    { id:'passport', name:'International Passport (Biodata Page)', desc:'Scanned copy of your passport biodata page', required:true, accept:'.pdf,.jpg,.jpeg,.png' },
-    { id:'photo',    name:'Passport-Sized Photograph',             desc:'Recent passport-sized photograph (white background)', required:true, accept:'.jpg,.jpeg,.png' },
-];
-
-const TYPE_DOCS = {
-    job:  [
-        { id:'cv',           name:'CV / Resume',                 desc:'Your updated curriculum vitae or resume',       required:true,  accept:'.pdf,.doc,.docx' },
-        { id:'certs',        name:'Professional Certifications', desc:'Copies of relevant certifications and licenses',required:false, accept:'.pdf,.jpg,.jpeg,.png' },
-        { id:'ref_letters',  name:'Reference Letters',           desc:'Professional reference letters from previous employers', required:false, accept:'.pdf,.doc,.docx' },
-    ],
-    edu:  [
-        { id:'cv',           name:'CV / Resume',                 desc:'Your academic curriculum vitae',                required:true,  accept:'.pdf,.doc,.docx' },
-        { id:'transcripts',  name:'Academic Transcripts',        desc:'Official transcripts from your previous institution', required:true, accept:'.pdf,.jpg,.jpeg,.png' },
-        { id:'rec_letters',  name:'Recommendation Letters',      desc:'Academic recommendation letters (minimum 2)',   required:true,  accept:'.pdf,.doc,.docx' },
-        { id:'english_test', name:'English Proficiency Test Score', desc:'IELTS, TOEFL, or PTE score report',           required:false, accept:'.pdf,.jpg,.jpeg,.png' },
-    ],
-    visa: [
-        { id:'travel_itinerary', name:'Travel Itinerary',        desc:'Flight booking or travel plan',                 required:false, accept:'.pdf,.jpg,.jpeg,.png' },
-        { id:'accommodation',    name:'Accommodation Proof',     desc:'Hotel booking or host invitation letter',        required:false, accept:'.pdf,.jpg,.jpeg,.png' },
-        { id:'bank_statement',   name:'Bank Statements',         desc:'Last 3-6 months bank statements',               required:true,  accept:'.pdf,.jpg,.jpeg,.png' },
-    ],
-    pr:   [
-        { id:'birth_cert',       name:'Birth Certificate',        desc:'Official birth certificate',                   required:true,  accept:'.pdf,.jpg,.jpeg,.png' },
-        { id:'police_clearance', name:'Police Clearance Certificate', desc:'Police clearance from your country of residence', required:true, accept:'.pdf,.jpg,.jpeg,.png' },
-        { id:'marriage_cert',    name:'Marriage Certificate',     desc:'If applicable',                                 required:false, accept:'.pdf,.jpg,.jpeg,.png' },
-        { id:'medical_report',   name:'Medical Examination Report', desc:'Medical report from an approved physician',  required:true,  accept:'.pdf,.jpg,.jpeg,.png' },
-    ],
-};
+/** Loaded from api/requirements.php — replaces the old CORE_DOCS / TYPE_DOCS */
+let LOADED_REQUIREMENTS = [];
 
 // ── App State ──
 const state = {
@@ -178,10 +168,12 @@ function getRelevantQuestions() {
 function getRequiredDocs() {
     const seen = new Set();
     const docs = [];
-    for (const d of CORE_DOCS) { seen.add(d.id); docs.push(d); }
     for (const t of state.types) {
-        for (const d of (TYPE_DOCS[t] || [])) {
-            if (!seen.has(d.id)) { seen.add(d.id); docs.push(d); }
+        for (const d of LOADED_REQUIREMENTS) {
+            if (d.service_type === t && !seen.has(d.id)) {
+                seen.add(d.id);
+                docs.push(d);
+            }
         }
     }
     return docs;
@@ -245,7 +237,7 @@ function renderPanel() {
 
     if (state.step === 0) {
         html = `<h4 class="apply-panel-title">Select Sponsorship Type(s)</h4>
-<p class="apply-panel-subtitle">Choose one or more sponsorship pathways that match your goals.</p>
+<p class="apply-panel-subtitle">Choose a sponsorship pathway that matches your goals.</p>
 <div class="type-grid">
 ${SPONSORSHIP_TYPES.map(t => {
     const sel = state.types.includes(t.id);
@@ -265,10 +257,10 @@ ${SPONSORSHIP_TYPES.map(t => {
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem">
 ${field('fullName','Full Name *','text',p.fullName,'Your full name')}
 ${field('dateOfBirth','Date of Birth *','date',p.dateOfBirth,'')}
-${field('nationality','Nationality *','text',p.nationality,'e.g., Nigerian, Indian')}
+${countryField('nationality','Nationality *',p.nationality,'Select your nationality')}
 ${field('phoneNumber','Phone Number *','tel',p.phoneNumber,'+234 800 000 0000')}
-${field('currentCountry','Current Country of Residence *','text',p.currentCountry,'Your current country')}
-${field('destinationCountry','Destination Country','text',p.destinationCountry,'Target country (if known)')}
+${countryField('currentCountry','Current Country of Residence *',p.currentCountry,'Select your current country')}
+${countryField('destinationCountry','Destination Country',p.destinationCountry,'Target country (if known)')}
 </div>
 </div>`;
 
@@ -309,9 +301,9 @@ ${(q.options||[]).map(o=>`<option value="${o.v}" ${val===o.v?'selected':''}>${o.
 <p class="apply-panel-subtitle">Based on your selections, the following documents are required. You will upload them in the next step.</p>
 <div>
 ${docs.map(doc => {
-    const isCore = CORE_DOCS.some(c=>c.id===doc.id);
-    return `<div class="doc-item ${isCore?'core':''}">
-<div style="color:${isCore?'var(--color-gold)':'rgba(255,255,255,.4)'};flex-shrink:0">${ICONS.file}</div>
+    const isReq = doc.required;
+    return `<div class="doc-item ${isReq?'core':''}">
+<div style="color:${isReq?'var(--color-gold)':'rgba(255,255,255,.4)'};flex-shrink:0">${ICONS.file}</div>
 <div style="flex:1">
     <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
         <span style="font-size:.875rem;font-weight:600;color:#fff">${doc.name}</span>
@@ -408,10 +400,10 @@ function renderUploadZone(doc) {
         zoneContent = `<p style="font-size:.875rem;color:#f87171;font-weight:500">Upload failed — <label style="cursor:pointer;text-decoration:underline"><input type="file" style="display:none" accept="${doc.accept}" onchange="uploadDoc('${doc.id}',this)">Try again</label></p>`;
     }
 
-    const isCore = CORE_DOCS.some(c=>c.id===doc.id);
+    const isReq = doc.required;
     return `<div style="margin-bottom:1.25rem">
 <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
-    <div style="color:${isCore?'var(--color-gold)':'rgba(255,255,255,.4)'}">${ICONS.file}</div>
+    <div style="color:${isReq?'var(--color-gold)':'rgba(255,255,255,.4)'}">${ICONS.file}</div>
     <span style="font-size:.875rem;font-weight:600;color:#fff">${doc.name}</span>
     <span class="doc-req-badge ${doc.required?'required':'optional'}">${doc.required?'Required':'Optional'}</span>
 </div>
@@ -438,11 +430,13 @@ function renderNav() {
     nav.innerHTML = `
 ${state.step > 0 ? `<button class="apply-back-btn" onclick="prevStep()">${ICONS.arrowLeft} Back</button>` : ''}
 <div class="apply-spacer"></div>
-${!isLast
+${!isLast && state.step !== 0
     ? `<button class="apply-next-btn" ${canGo?'':'disabled'} onclick="nextStep()">Continue ${ICONS.arrowRight}</button>`
-    : `<button class="apply-next-btn" id="submit-btn" ${(canGo && state.consented && !state.submitting)?'':'disabled'} onclick="submitApplication()">
+    : isLast 
+        ? `<button class="apply-next-btn" id="submit-btn" ${(canGo && state.consented && !state.submitting)?'':'disabled'} onclick="submitApplication()">
         ${state.submitting ? ICONS.spinner + ' Submitting…' : ICONS.check + ' Submit Application'}
-    </button>`}`;
+    </button>` 
+        : ''}`;
 
     panel.appendChild(nav);
 }
@@ -455,14 +449,28 @@ function field(name, label, type, value, placeholder) {
 </div>`;
 }
 
+function countryField(name, label, value, placeholder) {
+    let opts = '<option value="">' + (placeholder || 'Select Country') + '</option>';
+    for (const c of COUNTRIES) {
+        const sel = c === value ? ' selected' : '';
+        opts += '<option value="' + escHtml(c) + '"' + sel + '>' + escHtml(c) + '</option>';
+    }
+    return `<div>
+<label style="display:block;font-size:.625rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">${label}</label>
+<select class="form-input" onchange="updatePersonalInfo('${name}',this.value)" style="color-scheme:dark">${opts}</select>
+</div>`;
+}
+
 // ── Handlers ──
 function toggleType(id) {
-    if (state.types.includes(id)) {
-        state.types = state.types.filter(t=>t!==id);
-    } else {
-        state.types.push(id);
-    }
+    // Only allow single selection and automatically progress to next step
+    state.types = [id];
     renderPanel();
+    setTimeout(() => {
+        if (state.step === 0 && canProceed()) {
+            nextStep();
+        }
+    }, 200);
 }
 
 function updatePersonalInfo(field, value) {
@@ -513,7 +521,7 @@ async function uploadDoc(docId, input) {
         fd.append('category', docId);
         fd.append('csrf_token', CSRF);
 
-        const res = await fetch((window.LOTOKS_CONFIG?.API_BASE || '/api') + '/user/documents/upload', { method:'POST', body:fd, credentials:'include' });
+        const res = await fetch((window.LOTOKS_CONFIG?.API_BASE || '/api') + '/user/documents/upload.php', { method:'POST', body:fd, credentials:'include' });
         const data = await res.json();
 
         if (res.ok) {
@@ -555,7 +563,7 @@ async function submitApplication() {
     renderNav();
 
     try {
-        const res = await fetch((window.LOTOKS_CONFIG?.API_BASE || '/api') + '/user/applications', {
+        const res = await fetch((window.LOTOKS_CONFIG?.API_BASE || '/api') + '/user/applications.php', {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type':'application/json', 'X-CSRF-Token': CSRF },
@@ -604,13 +612,22 @@ spinStyle.textContent = '.spin-anim{animation:spin .75s linear infinite}@keyfram
 document.head.appendChild(spinStyle);
 
 // ── Init ──
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Resolve BASE-prefixed links
     const BASE = window.LOTOKS_CONFIG?.BASE || '';
     const dlEl = document.getElementById('link-dashboard');
     const olEl = document.getElementById('link-opportunities');
     if (dlEl) dlEl.href = BASE + '/dashboard.php';
     if (olEl) olEl.href = BASE + '/opportunities.php';
+
+    // Load document requirements from admin-managed table
+    try {
+        const res = await fetch(BASE + '/api/requirements.php');
+        const data = await res.json();
+        if (data.success) LOADED_REQUIREMENTS = data.requirements || [];
+    } catch (e) {
+        console.warn('Failed to load requirements, using empty list', e);
+    }
 
     renderStepsBar();
     renderPanel();

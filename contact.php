@@ -1,16 +1,81 @@
-﻿<?php
+<?php
 /**
  * Lotoks — Get in Touch (contact.php)
  * Converted from pages/Contact.tsx
  */
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/db/connect.php';
+require_once __DIR__ . '/includes/functions.php';
 
 $page_title       = 'Contact Us | Lotoks';
 $page_description = 'Have questions? We would love to hear from you. Send us a message and our team will get back to you within 24 hours.';
+
+// ── Handle AJAX form submission ─────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $raw  = file_get_contents('php://input');
+    $data = json_decode($raw, true) ?? $_POST;
+
+    // CSRF verification
+    if (!csrf_verify()) {
+        http_response_code(419);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'CSRF token mismatch']);
+        exit;
+    }
+
+    $fullName = trim($data['fullName'] ?? '');
+    $email    = trim($data['email'] ?? '');
+    $phone    = trim($data['phone'] ?? '');
+    $interest = trim($data['interest'] ?? '');
+    $message  = trim($data['message'] ?? '');
+    $errors   = [];
+
+    if (empty($fullName))                          $errors[] = 'Full name is required.';
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'A valid email is required.';
+    if (empty($interest))                          $errors[] = 'Please select an interest.';
+    if (empty($message))                           $errors[] = 'Message is required.';
+    elseif (strlen($message) < 10)                 $errors[] = 'Message must be at least 10 characters.';
+
+    if (!empty($errors)) {
+        http_response_code(422);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => implode(' ', $errors)]);
+        exit;
+    }
+
+    $db = getDb();
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+
+    try {
+        $stmt = $db->prepare("INSERT INTO contact_messages (full_name, email, phone, interest, message, ip_address) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$fullName, $email, $phone ?: null, $interest, $message, $ip]);
+
+        // Notify admin via email
+        $adminEmail = 'info@lotoks.co.za';
+        $subject    = "New Contact Message from {$fullName}";
+        $body       = "<h2>New Contact Message</h2>
+                       <p><strong>From:</strong> " . htmlspecialchars($fullName) . " (" . htmlspecialchars($email) . ")</p>
+                       <p><strong>Phone:</strong> " . htmlspecialchars($phone ?: 'N/A') . "</p>
+                       <p><strong>Interest:</strong> " . htmlspecialchars($interest) . "</p>
+                       <hr>
+                       <p><strong>Message:</strong></p>
+                       <p>" . nl2br(htmlspecialchars($message)) . "</p>";
+        sendEmail($adminEmail, $subject, $body);
+
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'message' => 'Message sent successfully!']);
+        exit;
+    } catch (Exception $e) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Server error. Please try again later.']);
+        exit;
+    }
+}
+
 require_once __DIR__ . '/includes/head.php';
 require_once __DIR__ . '/includes/navbar.php';
 ?>
-
 <!-- ════════════════════════════════════════════════════════════
      HERO SECTION
      ════════════════════════════════════════════════════════════ -->
@@ -35,7 +100,7 @@ require_once __DIR__ . '/includes/navbar.php';
      ════════════════════════════════════════════════════════════ -->
 <section class="section-wrapper">
   <div class="container">
-    <div style="display:grid; grid-template-columns:1fr; gap:2rem;" class="contact-info-grid">
+    <div style="display:grid; gap:2rem;" class="contact-info-grid">
       
       <!-- Email Card -->
       <div class="elevated-card info-card text-center" data-animate="fade-up">
@@ -77,7 +142,7 @@ require_once __DIR__ . '/includes/navbar.php';
      ════════════════════════════════════════════════════════════ -->
 <section class="section-wrapper" style="background:linear-gradient(to bottom, var(--color-surface), #fff);">
   <div class="container">
-    <div style="display:grid; grid-template-columns:1fr; gap:3rem;" class="contact-split-grid">
+    <div style="display:grid; gap:3rem;" class="contact-split-grid">
       
       <!-- Left side: Form -->
       <div data-animate="fade-up">
@@ -100,7 +165,7 @@ require_once __DIR__ . '/includes/navbar.php';
             <h3 style="font-family:var(--font-heading); font-size:1.5rem; font-weight:700; color:#fff; margin-bottom:1.5rem;">Send Us a Message</h3>
             
             <form id="contact-form" novalidate style="display:flex; flex-direction:column; gap:1.25rem;">
-              <div style="display:grid; grid-template-columns:1fr; gap:1.25rem;" class="form-row">
+              <div style="display:grid; gap:1.25rem;" class="form-row">
                 <div class="form-group" style="margin-bottom:0;">
                   <label for="fullName" class="form-label">Full Name</label>
                   <input type="text" id="fullName" class="form-input" placeholder="John Doe" required />
@@ -114,7 +179,7 @@ require_once __DIR__ . '/includes/navbar.php';
                 </div>
               </div>
 
-              <div style="display:grid; grid-template-columns:1fr; gap:1.25rem;" class="form-row">
+              <div style="display:grid; gap:1.25rem;" class="form-row">
                 <div class="form-group" style="margin-bottom:0;">
                   <label for="phone" class="form-label">Phone Number (Optional)</label>
                   <input type="tel" id="phone" class="form-input" placeholder="+27 81 506 9081" />
@@ -193,7 +258,7 @@ require_once __DIR__ . '/includes/navbar.php';
         <!-- FAQ Quick links -->
         <div>
           <h3 style="font-family:var(--font-heading); font-size:1.25rem; font-weight:700; color:var(--color-navy); margin-bottom:1rem;">Quick Questions?</h3>
-          <div style="display:grid; grid-template-columns:1fr; gap:1rem;" class="quick-faq-grid">
+          <div style="display:grid; gap:1rem;" class="quick-faq-grid">
             <?php
             $quickFaq = [
               ["q" => "How do I apply?", "a" => "Start with our eligibility check", "url" => "/eligibility.php"],
@@ -219,7 +284,7 @@ require_once __DIR__ . '/includes/navbar.php';
         </div>
 
         <!-- Follow Us & Office Hours -->
-        <div style="display:grid; grid-template-columns:1fr; gap:1.5rem;" class="social-hours-grid">
+        <div style="display:grid; gap:1.5rem;" class="social-hours-grid">
           
           <!-- Socials -->
           <div>
@@ -293,12 +358,12 @@ require_once __DIR__ . '/includes/navbar.php';
 /* Grid settings */
 .contact-info-grid { grid-template-columns: 1fr; }
 @media (min-width: 768px) {
-  .contact-info-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .contact-info-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
 .contact-split-grid { grid-template-columns: 1fr; }
 @media (min-width: 992px) {
-  .contact-split-grid { grid-template-columns: 1.1fr 0.9fr !important; }
+  .contact-split-grid { grid-template-columns: 1.1fr 0.9fr; }
 }
 
 /* Info card styles */
@@ -334,7 +399,7 @@ require_once __DIR__ . '/includes/navbar.php';
 /* Form inputs styling override rows */
 .form-row { grid-template-columns: 1fr; }
 @media (min-width: 576px) {
-  .form-row { grid-template-columns: 1fr 1fr !important; }
+  .form-row { grid-template-columns: 1fr 1fr; }
 }
 
 /* Abstract map styling */
@@ -402,7 +467,7 @@ require_once __DIR__ . '/includes/navbar.php';
 /* Quick FAQs grid */
 .quick-faq-grid { grid-template-columns: 1fr; }
 @media (min-width: 576px) {
-  .quick-faq-grid { grid-template-columns: 1fr 1fr !important; }
+  .quick-faq-grid { grid-template-columns: 1fr 1fr; }
 }
 
 .quick-faq-card:hover {
@@ -490,19 +555,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (hasError) return;
 
-      // Simulate sending state
+      // Send to server
       const originalText = submitBtn.innerHTML;
       window.setButtonLoading(submitBtn, true);
 
-      // Simulate API delay (1.5s)
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      try {
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
 
-      window.setButtonLoading(submitBtn, false, originalText);
+        const response = await fetch(window.location.href, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+          },
+          body: JSON.stringify({
+            fullName: fullName,
+            email: email,
+            phone: document.getElementById('phone').value.trim(),
+            interest: interest,
+            message: message
+          })
+        });
 
-      // Transition to success screen
-      mainContainer.style.display = 'none';
-      successContainer.style.display = 'block';
-      successContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const result = await response.json();
+        window.setButtonLoading(submitBtn, false, originalText);
+
+        if (result.success) {
+          mainContainer.style.display = 'none';
+          successContainer.style.display = 'block';
+          successContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          showError('fullName', result.message || 'Something went wrong. Please try again.');
+          window.setButtonLoading(submitBtn, false, originalText);
+        }
+      } catch (err) {
+        window.setButtonLoading(submitBtn, false, originalText);
+        showError('fullName', 'Network error. Please check your connection and try again.');
+      }
     });
   }
 
